@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 // Importing your service logic
 import { registerUser } from '../../src/services/auth.service';
 
+
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -32,7 +33,7 @@ export default function RegisterScreen() {
       
       Alert.alert('Success', 'Account created successfully');
       // YOUR PATH: Redirect to login after successful registration
-      router.replace('/auth/login');
+      router.replace('/auth/interests');
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Signup Failed';
       Alert.alert('Registration Error', msg);
