@@ -10,15 +10,15 @@ import {
   ActivityIndicator 
 } from 'react-native';
 import { router } from 'expo-router';
-// Importing your service logic
+import { Eye, EyeOff } from 'lucide-react-native'; // Import Icons
 import { loginUser } from '../../src/services/auth.service';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // State for visibility
 
-  // YOUR LOGIC: Async login with error handling
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Missing Fields', 'Please enter both email and password.');
@@ -28,7 +28,6 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await loginUser({ email, password });
-      // YOUR PATH: Using your specific route
       router.replace('/tabs/home');
     } catch (error: any) {
       const msg = error?.response?.data?.message || 'Login failed. Please try again.';
@@ -80,22 +79,33 @@ export default function LoginScreen() {
           />
         </View>
 
-        {/* Password */}
+        {/* Password - Modified with Eye Icon */}
         <View className="mb-8">
           <Text className="text-[12px] text-cyber-cyan mb-2 font-bold tracking-widest">
             PASSWORD
           </Text>
-          <TextInput
-            className="h-[54px] bg-cyber-green/5 border border-cyber-green/30 rounded-xl px-5 text-base text-white"
-            placeholder="••••••••"
-            placeholderTextColor="#666"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
+          
+          {/* Container acts as the input box now */}
+          <View className="h-[54px] bg-cyber-green/5 border border-cyber-green/30 rounded-xl px-5 flex-row items-center">
+            <TextInput
+              className="flex-1 text-base text-white h-full"
+              placeholder="••••••••"
+              placeholderTextColor="#666"
+              secureTextEntry={!showPassword} // Toggle based on state
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              {showPassword ? (
+                <EyeOff color="#00ff88" size={20} />
+              ) : (
+                <Eye color="#00ff88" size={20} />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Button - Modified to show Loading Indicator */}
+        {/* Button */}
         <TouchableOpacity
           className={`bg-cyber-green h-14 rounded-full justify-center items-center mt-2 ${loading ? 'opacity-70' : ''}`}
           onPress={handleLogin}
