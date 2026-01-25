@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IClub extends Document {
   name: string;
   description: string;
-  category: "Technical" | "Cultural" | "Sports" | "Literary" | "Other";
+  category: "Technical" | "Cultural" | "Literary" | "Other";
   followers: mongoose.Types.ObjectId[];
 }
 
