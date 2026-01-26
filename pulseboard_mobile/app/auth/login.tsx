@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { loginUser, googleLoginUser } from '../../src/services/auth.service';
+import {Eye, EyeOff} from 'lucide-react-native'
 
 // 1. Initialize WebBrowser (Required for the popup to close correctly)
 WebBrowser.maybeCompleteAuthSession();
@@ -21,6 +22,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // State for visibility
 
   // 2. GOOGLE AUTH SETUP (Expo Docs Standard)
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -142,19 +144,30 @@ export default function LoginScreen() {
           />
         </View>
 
-        {/* Password */}
+        {/* Password - Modified with Eye Icon */}
         <View className="mb-8">
           <Text className="text-[12px] text-cyber-cyan mb-2 font-bold tracking-widest">
             PASSWORD
           </Text>
-          <TextInput
-            className="h-[54px] bg-cyber-green/5 border border-cyber-green/30 rounded-xl px-5 text-base text-white"
-            placeholder="••••••••"
-            placeholderTextColor="#666"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
+          
+          {/* Container acts as the input box now */}
+          <View className="h-[54px] bg-cyber-green/5 border border-cyber-green/30 rounded-xl px-5 flex-row items-center">
+            <TextInput
+              className="flex-1 text-base text-white h-full"
+              placeholder="••••••••"
+              placeholderTextColor="#666"
+              secureTextEntry={!showPassword} // Toggle based on state
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              {showPassword ? (
+                <EyeOff color="#00ff88" size={20} />
+              ) : (
+                <Eye color="#00ff88" size={20} />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Submit */}
