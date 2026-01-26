@@ -15,14 +15,14 @@ import {
 import { router } from 'expo-router';
 import { Eye, EyeOff, ChevronLeft, Mail, Lock, Zap } from 'lucide-react-native';
 import { loginUser } from '../../src/services/auth.service';
-import { LinearGradient } from 'expo-linear-gradient'; // <--- Import this
+import { LinearGradient } from 'expo-linear-gradient'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // --- Theme Constants ---
 const LN_VOLT = '#CCF900'; 
-const LN_BLACK = '#050505';
 
 // --- Load the Image ---
-const BG_IMAGE = require('../../assets/lionbg.png'); 
+const BG_IMAGE = require('../../assets/roll.jpg'); 
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -39,11 +39,30 @@ export default function LoginScreen() {
   
     setLoading(true);
     try {
-      await loginUser({ email, password });
-      router.replace('/tabs/home');
+      // 1. Attempt Login
+      const response = await loginUser({ email, password });
+      
+      // 2. Save Token (CRITICAL for Home Screen to work)
+      if (response.token) {
+        await AsyncStorage.setItem('token', response.token);
+        router.replace('/tabs/home');
+      } else {
+        throw new Error("No token received");
+      }
+
     } catch (error: any) {
-      const msg = error?.response?.data?.message || 'Access Denied. Check credentials.';
-      Alert.alert('System Error', msg);
+      console.log("Login Error Full:", error);
+      
+      // Handle Network Errors specifically
+      if (error.message === 'Network Error') {
+        Alert.alert(
+          'Connection Failed', 
+          'Cannot reach the server. \n\n1. Check if backend is running.\n2. Ensure API_URL uses your IP (not localhost).'
+        );
+      } else {
+        const msg = error?.response?.data?.message || 'Access Denied. Check credentials.';
+        Alert.alert('System Error', msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -53,28 +72,20 @@ export default function LoginScreen() {
     <View className="flex-1 bg-[#050505]">
       <StatusBar barStyle="light-content" backgroundColor="#050505" />
       
-      {/* LAYER 1: The Image 
-         opacity: 0.3 means the "brightest" part of the image is 30% visible.
-      */}
+      {/* LAYER 1: The Image (Lion) */}
       <ImageBackground 
         source={BG_IMAGE} 
         className="flex-1"
         resizeMode="cover"
-        imageStyle={{ opacity: 0.3 }} // Base opacity (Max visibility)
+        imageStyle={{ opacity: 0.35 }} 
       >
         
-        {/* LAYER 2: The Gradient Mask 
-           This creates the "fade from middle" effect.
-           - Top (0.0): Transparent (Image is visible)
-           - Middle (0.5): Black (Image is hidden)
-           - Bottom (1.0): Black (Image is hidden)
-        */}
         {/* LAYER 2: The Gradient Mask */}
-      <LinearGradient
-          colors={['transparent', 'rgba(5, 5, 5, 0.75)', 'rgba(5, 5, 5, 0.85)']}
-          locations={[0, 0.5, 1]}
-          className="absolute w-full h-full"
-      />
+        <LinearGradient
+            colors={['transparent', 'rgba(5, 5, 5, 0.6)', '#050505']}
+            locations={[0, 0.4, 0.8]}
+            className="absolute w-full h-full"
+        />
 
         <SafeAreaView className="flex-1">
           <KeyboardAvoidingView 
@@ -169,7 +180,7 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              {/* Forgot Password (Made Bigger & Noticeable) */}
+              {/* Forgot Password */}
               <TouchableOpacity className="items-end mt-2">
                 <Text className="text-neutral-400 text-sm font-bold uppercase tracking-wider border-b border-[#CCF900]/50 pb-0.5">
                   Reset Credentials?

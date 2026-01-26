@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import router from "../src/routes/auth.routes.ts";
 import clubRoutes from "./routes/club.routes.ts";
 import eventRoutes from "./routes/event.routes.ts";
+import userRoutes from "./routes/user.routes.ts";
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use("/auth", router);
 app.use("/api/clubs", clubRoutes);
 app.use("/api/events", eventRoutes);
+app.use("/api/users", userRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI!)

@@ -7,12 +7,12 @@ import {
   Menu, Calendar, PlayCircle, MapPin, LogOut 
 } from 'lucide-react-native';
 import { router } from 'expo-router';
-// Make sure this path matches your project structure!
+// Import BOTH APIs
 import { getEventFeed } from '../../src/api/event.api'; 
+import { getUserProfile } from '../../src/api/user.api'; // <--- New Import
 
 const THEME_ACCENT = '#CCF900'; 
 
-// Helper to add opacity to Hex colors
 const getRgba = (hex: string, opacity: number) => {
     if(!hex) return `rgba(255, 255, 255, ${opacity})`;
     const r = parseInt(hex.slice(1, 3), 16);
@@ -37,42 +37,52 @@ export default function HomeScreen() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ---------------------------------------------------------
-  // 🚧 TEMPORARY: Simulated User State
-  // In the next step, we will fetch the REAL logged-in user here.
-  // For now, this tests if the "Interests Sorting" works.
-  const [user, setUser] = useState({
-    name: "Amisha",
-    // Matches: Quant, RAID, Inside, PSOC, Designerds, Respawn
-    interests: [1, 3, 4, 6, 11, 15] 
+  // --- REAL USER STATE ---
+  const [user, setUser] = useState<{ name: string; interests: number[] }>({
+    name: "Loading...",
+    interests: [] 
   });
-  // ---------------------------------------------------------
 
   useEffect(() => {
-    fetchFeed();
+    loadData();
   }, []);
 
-  const fetchFeed = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await getEventFeed();
-      // The backend now returns data with 'clubName' and 'category' populated!
-      setEvents(data);
+
+      // 1. Fetch User Profile AND Events in parallel
+      const [userData, eventData] = await Promise.all([
+        getUserProfile(),
+        getEventFeed()
+      ]);
+
+      console.log("Logged in as:", userData.name);
+      
+      // 2. Update State with REAL data
+      setUser({
+        name: userData.name,
+        interests: userData.interests || [] 
+      });
+
+      setEvents(eventData);
+
     } catch (err) {
-      console.log("Failed to load feed", err);
+      console.log("Failed to load home data", err);
+      // Optional: If error is 401, redirect to login
+      // router.replace('/auth/login');
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Sorting Logic (Plan PP3) ---
+  // --- Sorting Logic ---
   const sortEventsByInterest = (eventsList: any[]) => {
     return [...eventsList].sort((a, b) => {
       const aInterested = user.interests.includes(a.clubId);
       const bInterested = user.interests.includes(b.clubId);
-      // If A is interesting and B is not, A goes first (-1)
+      
       if (aInterested && !bInterested) return -1;
-      // If B is interesting and A is not, B goes first (1)
       if (!aInterested && bInterested) return 1;
       return 0;
     });
@@ -124,7 +134,6 @@ export default function HomeScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24 }} className="mb-10">
             {liveEvents.map((event: any) => {
               const isInterested = user.interests.includes(event.clubId);
-              // Use event color from DB, fallback to accent
               const cardColor = event.color || THEME_ACCENT; 
               
               return (
@@ -137,7 +146,6 @@ export default function HomeScreen() {
                     borderColor: isInterested ? getRgba(cardColor, 0.4) : 'transparent'
                   }}
                 >
-                  {/* Dynamic Glow Effect */}
                   {isInterested ? (
                      <View className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl" 
                            style={{ backgroundColor: getRgba(cardColor, 0.2) }} />
@@ -158,7 +166,7 @@ export default function HomeScreen() {
 
                   <View>
                      <Text className="text-neutral-500 text-[10px] font-bold tracking-widest mb-1 uppercase">
-                      {event.clubName} {/* Fetched via Lookup! */}
+                      {event.clubName}
                     </Text>
                     <Text className="text-white text-2xl font-black leading-7 mb-2">
                       {event.title}

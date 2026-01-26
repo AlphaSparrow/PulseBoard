@@ -7,12 +7,22 @@ import {
   TextInput, 
   StatusBar, 
   Alert, 
-  ActivityIndicator 
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ImageBackground,
+  ScrollView
 } from 'react-native';
 import { router } from 'expo-router';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { Eye, EyeOff, ChevronLeft, User, Mail, Lock, Zap } from 'lucide-react-native';
 import { registerUser } from '../../src/services/auth.service';
+import { LinearGradient } from 'expo-linear-gradient';
 
+// --- Theme Constants ---
+const LN_VOLT = '#CCF900'; 
+
+// --- Load the Image ---
+const BG_IMAGE = require('../../assets/disc.jpg'); 
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -24,10 +34,10 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
+  // Focus State
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  
   const [loading, setLoading] = useState(false);
-
-  // Derived state for password validation visibility
-  const isPasswordShort = password.length > 0 && password.length < 8;
 
   const handleRegister = async () => {
     // 1. Check for empty fields
@@ -59,28 +69,25 @@ export default function RegisterScreen() {
       await registerUser({ name, email, password });
       
       Alert.alert('Success', 'Account created successfully');
-      // YOUR PATH: Redirect to login after successful registration
-      router.push('/auth/interests');
+      // Redirect to login after successful registration
+      router.push('/auth/login');
     } catch (err: any) {
-      // --- NEW: Handle Duplicate Email Logic ---
       const status = err?.response?.status;
       const errorMsg = err?.response?.data?.message || '';
 
-      // If Backend returns 409 (Conflict) or message says "already exists"
       if (status === 409 || errorMsg.toLowerCase().includes('already exists')) {
         Alert.alert(
           'Account Exists',
-          'This email is already registered with us.',
+          'This email is already registered.',
           [
             { text: 'Cancel', style: 'cancel' },
             { 
               text: 'Login Instead', 
-              onPress: () => router.push('/auth/login') // Redirects user to login
+              onPress: () => router.push('/auth/login') 
             }
           ]
         );
       } else {
-        // Generic Error
         Alert.alert('Registration Error', errorMsg || 'Signup Failed. Please try again.');
       }
     } finally {
@@ -89,131 +96,208 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View className="flex-1 bg-black">
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+    <View className="flex-1 bg-[#050505]">
+      <StatusBar barStyle="light-content" backgroundColor="#050505" />
 
-      {/* Header */}
-      <View className="h-[25vh] bg-black justify-center items-center border-b-2 border-cyber-green/30">
-        <SafeAreaView className="absolute top-5 left-5">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text className="text-cyber-green text-base font-bold">
-              ← BACK
-            </Text>
-          </TouchableOpacity>
+      {/* LAYER 1: The Image (Lion) */}
+      <ImageBackground 
+        source={BG_IMAGE} 
+        className="flex-1"
+        resizeMode="cover"
+        imageStyle={{ opacity: 0.35 }} 
+      >
+        
+        {/* LAYER 2: The Gradient Mask */}
+        <LinearGradient
+            colors={['transparent', 'rgba(5, 5, 5, 0.8)', '#050505']}
+            locations={[0, 0.4, 0.9]}
+            className="absolute w-full h-full"
+        />
+
+        <SafeAreaView className="flex-1">
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            className="flex-1 px-6"
+          >
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+              
+              {/* --- Header Section --- */}
+              <View className="mt-4 mb-8">
+                <TouchableOpacity 
+                  onPress={() => router.back()} 
+                  className="w-12 h-12 bg-[#121212]/80 border border-neutral-800 rounded-full justify-center items-center mb-6"
+                >
+                  <ChevronLeft color="white" size={24} />
+                </TouchableOpacity>
+
+                <View>
+                  <View className="flex-row items-center space-x-2 mb-2">
+                    <View className="w-2 h-2 bg-[#CCF900] rounded-full animate-pulse" />
+                    <Text className="text-[#CCF900] font-mono text-[10px] tracking-[3px] uppercase">
+                      New Entry
+                    </Text>
+                  </View>
+
+                  <Text className="text-white text-5xl font-black italic tracking-tighter uppercase leading-[0.9] mb-4">
+                    Create<Text className="text-[#CCF900]">.</Text>{"\n"}Account
+                  </Text>
+                  
+                  <Text className="text-neutral-400 text-sm font-medium leading-5 max-w-[90%]">
+                    Join the PulseBoard network. Exclusive to IIT Jodhpur students.
+                  </Text>
+                </View>
+              </View>
+
+              {/* --- Form Section --- */}
+              <View className="space-y-5">
+                
+                {/* Name Input */}
+                <View>
+                  <Text className="text-neutral-500 text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">
+                    Full Name
+                  </Text>
+                  <View 
+                    className={`h-16 bg-[#121212]/90 rounded-xl border flex-row items-center px-4 ${
+                      focusedInput === 'name' ? 'border-[#CCF900]' : 'border-neutral-800'
+                    }`}
+                  >
+                    <User color={focusedInput === 'name' ? LN_VOLT : '#555'} size={20} className="mr-3" />
+                    <TextInput
+                      className="flex-1 text-base text-white font-bold h-full"
+                      placeholder="John Doe"
+                      placeholderTextColor="#444"
+                      value={name}
+                      onChangeText={setName}
+                      selectionColor={LN_VOLT}
+                      onFocus={() => setFocusedInput('name')}
+                      onBlur={() => setFocusedInput(null)}
+                    />
+                  </View>
+                </View>
+
+                {/* Email Input */}
+                <View>
+                  <Text className="text-neutral-500 text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">
+                    Institute Email
+                  </Text>
+                  <View 
+                    className={`h-16 bg-[#121212]/90 rounded-xl border flex-row items-center px-4 ${
+                      focusedInput === 'email' ? 'border-[#CCF900]' : 'border-neutral-800'
+                    }`}
+                  >
+                    <Mail color={focusedInput === 'email' ? LN_VOLT : '#555'} size={20} className="mr-3" />
+                    <TextInput
+                      className="flex-1 text-base text-white font-bold h-full"
+                      placeholder="student@iitj.ac.in"
+                      placeholderTextColor="#444"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      value={email}
+                      onChangeText={setEmail}
+                      selectionColor={LN_VOLT}
+                      onFocus={() => setFocusedInput('email')}
+                      onBlur={() => setFocusedInput(null)}
+                    />
+                  </View>
+                </View>
+
+                {/* Password Input */}
+                <View>
+                  <Text className="text-neutral-500 text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">
+                    Set Password
+                  </Text>
+                  <View 
+                    className={`h-16 bg-[#121212]/90 rounded-xl border flex-row items-center px-4 ${
+                      focusedInput === 'password' ? 'border-[#CCF900]' : 'border-neutral-800'
+                    }`}
+                  >
+                    <Lock color={focusedInput === 'password' ? LN_VOLT : '#555'} size={20} className="mr-3" />
+                    <TextInput
+                      className="flex-1 text-base text-white font-bold h-full"
+                      placeholder="Min 8 chars"
+                      placeholderTextColor="#444"
+                      secureTextEntry={!showPassword}
+                      value={password}
+                      onChangeText={setPassword}
+                      selectionColor={LN_VOLT}
+                      onFocus={() => setFocusedInput('password')}
+                      onBlur={() => setFocusedInput(null)}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="p-2">
+                      {showPassword ? <EyeOff color="#555" size={20} /> : <Eye color="#555" size={20} />}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Confirm Password Input */}
+                <View>
+                  <Text className="text-neutral-500 text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">
+                    Confirm Password
+                  </Text>
+                  <View 
+                    className={`h-16 bg-[#121212]/90 rounded-xl border flex-row items-center px-4 ${
+                      focusedInput === 'confirm' ? 'border-[#CCF900]' : 'border-neutral-800'
+                    }`}
+                  >
+                    <Lock color={focusedInput === 'confirm' ? LN_VOLT : '#555'} size={20} className="mr-3" />
+                    <TextInput
+                      className="flex-1 text-base text-white font-bold h-full"
+                      placeholder="Repeat Password"
+                      placeholderTextColor="#444"
+                      secureTextEntry={!showConfirmPassword}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      selectionColor={LN_VOLT}
+                      onFocus={() => setFocusedInput('confirm')}
+                      onBlur={() => setFocusedInput(null)}
+                    />
+                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} className="p-2">
+                      {showConfirmPassword ? <EyeOff color="#555" size={20} /> : <Eye color="#555" size={20} />}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Register Button */}
+                <TouchableOpacity
+                  className={`h-16 bg-[#CCF900] justify-center items-center mt-6 group ${loading ? 'opacity-70' : ''}`}
+                  onPress={handleRegister}
+                  disabled={loading}
+                  activeOpacity={0.9}
+                  style={{ transform: [{ skewX: '-12deg' }], borderRadius: 4 }}
+                >
+                  {loading ? (
+                    <View style={{ transform: [{ skewX: '12deg' }] }}>
+                      <ActivityIndicator color="black" />
+                    </View>
+                  ) : (
+                    <View className="flex-row items-center" style={{ transform: [{ skewX: '12deg' }] }}>
+                      <Text className="text-black text-lg font-black uppercase tracking-widest mr-2">
+                        REGISTER SYSTEM
+                      </Text>
+                      <Zap color="black" size={20} fill="black" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* Footer */}
+                <View className="py-4 items-center">
+                  <View className="flex-row items-center">
+                    <Text className="text-neutral-400 text-xs font-medium mr-2">
+                      Already have an account?
+                    </Text>
+                    <TouchableOpacity onPress={() => router.push('/auth/login')}>
+                      <Text className="text-white font-black text-xs uppercase tracking-wider border-b border-[#CCF900]">
+                        LOGIN
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
-
-        <View className="items-center mt-4">
-          <Text className="text-cyber-green text-[34px] font-black tracking-wide">
-            REGISTER
-          </Text>
-          <Text className="text-cyber-cyan text-sm mt-2 tracking-widest">
-            IITJ STUDENT PORTAL
-          </Text>
-        </View>
-      </View>
-
-      {/* Form */}
-      <View className="flex-1 px-8 pt-8">
-        {/* Name */}
-        <View className="mb-5">
-          <Text className="text-[12px] text-cyber-cyan mb-2 font-bold tracking-widest">
-            FULL NAME
-          </Text>
-          <TextInput
-            className="h-[50px] bg-cyber-green/5 border border-cyber-green/30 rounded-xl px-5 text-base text-white"
-            placeholder="John Doe"
-            placeholderTextColor="#666"
-            value={name}
-            onChangeText={setName}
-          />
-        </View>
-
-        {/* Email */}
-        <View className="mb-5">
-          <Text className="text-[12px] text-cyber-cyan mb-2 font-bold tracking-widest">
-            INSTITUTE EMAIL
-          </Text>
-          <TextInput
-            className="h-[50px] bg-cyber-green/5 border border-cyber-green/30 rounded-xl px-5 text-base text-white"
-            placeholder="student@iitj.ac.in"
-            placeholderTextColor="#666"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
-
-        {/* Password */}
-        <View className="mb-2">
-          <Text className="text-[12px] text-cyber-cyan mb-2 font-bold tracking-widest">
-            PASSWORD
-          </Text>
-          <View className="h-[50px] bg-cyber-green/5 border border-cyber-green/30 rounded-xl px-5 flex-row items-center">
-            <TextInput
-              className="flex-1 text-base text-white h-full"
-              placeholder="Min 8 characters"
-              placeholderTextColor="#666"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              {showPassword ? <EyeOff color="#00ff88" size={20} /> : <Eye color="#00ff88" size={20} />}
-            </TouchableOpacity>
-          </View>
-          
-          {/* Dynamic Error Message */}
-          {isPasswordShort && (
-            <Text className="text-cyber-red text-xs mt-1 ml-1">
-              ⚠️ Password must be at least 8 characters
-            </Text>
-          )}
-        </View>
-
-        {/* Confirm Password */}
-        <View className="mb-8 mt-3">
-          <Text className="text-[12px] text-cyber-cyan mb-2 font-bold tracking-widest">
-            CONFIRM PASSWORD
-          </Text>
-          <View className="h-[50px] bg-cyber-green/5 border border-cyber-green/30 rounded-xl px-5 flex-row items-center">
-            <TextInput
-              className="flex-1 text-base text-white h-full"
-              placeholder="Repeat Password"
-              placeholderTextColor="#666"
-              secureTextEntry={!showConfirmPassword}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
-            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-              {showConfirmPassword ? <EyeOff color="#00ff88" size={20} /> : <Eye color="#00ff88" size={20} />}
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Button */}
-        <TouchableOpacity
-          className={`bg-cyber-green h-14 rounded-full justify-center items-center ${loading ? 'opacity-70' : ''}`}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="black" />
-          ) : (
-            <Text className="text-black text-base font-black tracking-widest">
-              SIGN UP
-            </Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Footer */}
-        <TouchableOpacity onPress={() => router.push('/auth/login')}>
-          <Text className="text-center mt-6 text-neutral-300 text-sm">
-            Already have an account?{' '}
-            <Text className="text-cyber-green font-bold">LOGIN</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
+      </ImageBackground>
     </View>
   );
 }

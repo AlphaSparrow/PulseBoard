@@ -32,7 +32,8 @@ export interface LoginResponse {
 export const registerUser = async (
   data: RegisterPayload
 ): Promise<RegisterResponse> => {
-  console.log(data)
+  console.log("Registering data:", data);
+  // Post to /auth/register
   const res = await api.post<RegisterResponse>("/auth/register", data);
   return res.data;
 };
@@ -41,6 +42,7 @@ export const registerUser = async (
 export const loginUser = async (
   data: LoginPayload
 ): Promise<LoginResponse> => {
+  // Post to /auth/login
   const res = await api.post<LoginResponse>("/auth/login", data);
   
   // Store the token automatically upon successful login
