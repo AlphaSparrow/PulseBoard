@@ -54,6 +54,7 @@ export const loginUser = async (
 // --- Google Auth Function ---
 export const googleLoginUser = async (code: string) => {
   const res = await api.post("/auth/google/callback", { code });
+  console.log(res);
   if (res.data.token) {
     await AsyncStorage.setItem("token", res.data.token);
   }
