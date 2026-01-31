@@ -1,7 +1,8 @@
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Users, User } from 'lucide-react-native';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 
 // --- THEME CONSTANTS ---
 const THEME = {
@@ -12,6 +13,10 @@ const THEME = {
 };
 
 export default function TabLayout() {
+  // Define standard responsive sizes
+  const iconSize = hp('3%'); // Scales icon size relative to screen height
+  const fontSize = hp('1.2%');
+
   return (
     <Tabs
       screenOptions={{
@@ -22,20 +27,24 @@ export default function TabLayout() {
           backgroundColor: THEME.BG,
           borderTopColor: THEME.BORDER,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 60, // Taller on iOS for home indicator
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
-          paddingTop: 8,
-          elevation: 0, // Remove Android shadow for a flat, clean look
+          // Use hp for height so it scales. 
+          // iOS needs more height (approx 10-11%) to clear the home indicator.
+          // Android is fine with less (approx 8%).
+          height: Platform.OS === 'ios' ? hp('11%') : hp('8%'), 
+          paddingBottom: Platform.OS === 'ios' ? hp('3.5%') : hp('1%'),
+          paddingTop: hp('1%'),
+          elevation: 0, 
         },
         
         // --- TEXT STYLING ---
         tabBarActiveTintColor: THEME.ACCENT,
         tabBarInactiveTintColor: THEME.INACTIVE,
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: fontSize,
           fontWeight: '700',
           letterSpacing: 1,
-          marginTop: -4, // Pull text slightly closer to icon
+          // Use responsive margin to pull text closer to icon consistently
+          marginTop: -hp('0.5%'), 
         },
       }}
     >
@@ -43,8 +52,8 @@ export default function TabLayout() {
         name="home"
         options={{
           title: 'HOME',
-          tabBarIcon: ({ color, size }) => (
-            <Home color={color} size={24} strokeWidth={2.5} />
+          tabBarIcon: ({ color }) => (
+            <Home color={color} size={iconSize} strokeWidth={2.5} />
           ),
         }}
       />
@@ -52,8 +61,8 @@ export default function TabLayout() {
         name="clubs"
         options={{
           title: 'CLUBS',
-          tabBarIcon: ({ color, size }) => (
-            <Users color={color} size={24} strokeWidth={2.5} />
+          tabBarIcon: ({ color }) => (
+            <Users color={color} size={iconSize} strokeWidth={2.5} />
           ),
         }}
       />
@@ -61,8 +70,8 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'PROFILE',
-          tabBarIcon: ({ color, size }) => (
-            <User color={color} size={24} strokeWidth={2.5} />
+          tabBarIcon: ({ color }) => (
+            <User color={color} size={iconSize} strokeWidth={2.5} />
           ),
         }}
       />
