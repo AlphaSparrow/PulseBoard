@@ -120,7 +120,7 @@ export default function HomeScreen() {
           <View style={{ flexDirection: 'row', gap: wp('4%') }}>
              <TouchableOpacity 
                 onPress={() => setShowSidebar(true)} 
-                style={{ width: wp('12%'), height: wp('12%'), backgroundColor: '#121212', borderRadius: 999, alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: wp('12%'), height: wp('12%'), backgroundColor: '#121212', borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginTop: hp('1.5%') }}
              >
               <Menu color="white" size={hp('2.5%')} />
             </TouchableOpacity>

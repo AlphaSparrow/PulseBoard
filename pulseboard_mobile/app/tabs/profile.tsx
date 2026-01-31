@@ -65,7 +65,7 @@ export default function ProfileScreen() {
         alignItems: 'center', 
         justifyContent: 'space-between', 
         paddingVertical: hp('2%'), 
-        paddingHorizontal: wp('5%'), 
+        paddingHorizontal: wp('%'), 
         backgroundColor: '#121212', 
         borderWidth: 1, 
         borderColor: '#171717', 
@@ -153,7 +153,8 @@ export default function ProfileScreen() {
             padding: wp('3%'), 
             borderRadius: 999, 
             borderWidth: 1, 
-            borderColor: '#262626' 
+            borderColor: '#262626',
+            marginTop: hp('1.4%')
         }}>
           <Settings color={THEME_ACCENT} size={hp('2.5%')} />
         </TouchableOpacity>
