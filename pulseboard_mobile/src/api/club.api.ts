@@ -1,3 +1,4 @@
+import api from './client';
 import client from './client';
 
 export const toggleFollowClubApi = (clubId: number) => {

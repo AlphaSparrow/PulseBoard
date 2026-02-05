@@ -42,8 +42,9 @@ export default function ClubsScreen() {
   useEffect(() => {
     const fetch = async () => {
       try {
+        console.log("fetching clubs...");
         const data = await getAllClubs();
-
+         console.log("data received:",data);
         const mapped = data.map((club: any) => ({
           id: club.clubId,
           _id: club._id,
