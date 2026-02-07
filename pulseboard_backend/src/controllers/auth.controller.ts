@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
-import User from "../models/User.model.ts";
+import User from "../models/User.model";
 import bcrypt from "bcryptjs";
-import { getGoogleUser } from "../services/googleOAuth.service.ts";
+import { getGoogleUser } from "../services/googleOAuth.service";
 import jwt from "jsonwebtoken";
 
 // LOCAL REGISTRATION

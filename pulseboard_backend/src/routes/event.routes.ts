@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createEvent, getEventFeed } from '../controllers/event.controller.ts'; // .ts extension needed
+import { createEvent, getEventFeed } from '../controllers/event.controller'; // .ts extension needed
 
 const router = Router();
 

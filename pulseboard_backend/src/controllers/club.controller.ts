@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
-import Club from "../models/Club.model.ts"; // removed .ts extension for cleaner import
-import User from "../models/User.model.ts"; // removed .ts extension for cleaner import
+import Club from "../models/Club.model"; // removed .ts extension for cleaner import
+import User from "../models/User.model"; // removed .ts extension for cleaner import
 
 interface AuthenticatedRequest extends Request {
   user?: {

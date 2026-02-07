@@ -1,8 +1,8 @@
 import { Router } from "express";
 // NOTE: removed the '.ts' extension from imports (standard practice in Node/TS)
-import { createClub, toggleFollowClub } from "../controllers/club.controller.ts";
+import { createClub, toggleFollowClub } from "../controllers/club.controller";
 // FIX: Import 'authenticate' (that's the real name inside your file)
-import { authenticate } from '../middlewares/auth.middleware.ts';
+import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 

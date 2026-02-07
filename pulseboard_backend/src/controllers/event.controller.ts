@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import Event from '../models/Event.model.ts'; // Removed .ts extension for standard import
+import Event from '../models/Event.model'; // Removed .ts extension for standard import
 
 // --- Create Event ---
 export const createEvent = async (req: Request, res: Response) => {
