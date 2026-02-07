@@ -1,7 +1,12 @@
 import type { Request, Response } from "express";
+<<<<<<< HEAD
+import Club from "../models/Club.model"; // removed .ts extension for cleaner import
+import User from "../models/User.model"; // removed .ts extension for cleaner import
+=======
 import mongoose from "mongoose";
 import Club from "../models/Club.model.ts";
 import User from "../models/User.model.ts";
+>>>>>>> fb0f8f7e5eb0e497f59eaeb1c3e4ad69b595bd3f
 
 interface AuthenticatedRequest extends Request {
   user?: {
