@@ -12,3 +12,8 @@ export const getEventFeed = async () => {
     throw error;
   }
 };
+
+export const getMyEventsCount = async () => {
+  const response = await axios.get(`${API_URL}/api/events/my-count`); 
+  return response.data; 
+};

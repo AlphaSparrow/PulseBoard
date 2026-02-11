@@ -1,5 +1,39 @@
 import type { Request, Response } from 'express';
-import Event from '../models/Event.model.ts'; // Removed .ts extension for standard import
+// FIX: Added .ts extension back because your Node environment requires it
+import Event from '../models/Event.model.ts'; 
+import User from '../models/User.model.ts';   
+
+// --- Get My Events Count (FIXED) ---
+export const getMyEventsCount = async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: User ID missing" });
+    }
+
+    const user = await User.findById(userId).select('following');
+    const followingRaw = user?.following || [];
+
+    // Mixed Type Logic (Matches both Numbers and Strings)
+    const followingMixed = [
+      ...followingRaw.map((id: any) => Number(id)), 
+      ...followingRaw.map((id: any) => String(id))
+    ];
+
+    const count = await Event.countDocuments({ 
+      clubId: { $in: followingMixed as any },
+      badge: { $in: ['LIVE', 'UPCOMING'] } 
+    });
+
+    console.log(`User ${userId} follows ${followingRaw.length} clubs. Found ${count} active events.`);
+    res.json({ count });
+
+  } catch (error) {
+    console.error("Error counting events:", error);
+    res.status(500).json({ message: "Server Error", error });
+  }
+};
 
 // --- Create Event ---
 export const createEvent = async (req: Request, res: Response) => {
@@ -12,47 +46,40 @@ export const createEvent = async (req: Request, res: Response) => {
   }
 };
 
-// --- Get Feed (The "Join" Logic) ---
+// --- Get Feed ---
 export const getEventFeed = async (req: Request, res: Response) => {
   try {
     const events = await Event.aggregate([
-      // 1. Filter for valid badges
       { 
         $match: { 
           badge: { $in: ['LIVE', 'UPCOMING'] } 
         } 
       },
-      // 2. Lookup (Join) events.clubId == clubs.clubId
       {
         $lookup: {
-          from: 'clubs',          // Must match your MongoDB collection name exactly
-          localField: 'clubId',   // Field in Event (Number)
-          foreignField: 'clubId', // FIX: Changed from 'id' to 'clubId' to match your Model
-          as: 'clubInfo'          // Temporary name for joined data
+          from: 'clubs',          
+          localField: 'clubId',   
+          foreignField: 'clubId', 
+          as: 'clubInfo'          
         }
       },
-      // 3. Unwind (Convert array -> object)
-      // preserveNullAndEmptyArrays: true prevents events from vanishing if club lookup fails
       { 
         $unwind: {
           path: '$clubInfo',
           preserveNullAndEmptyArrays: true 
         }
       },
-      // 4. Flatten the Data (Pull Name/Category out of clubInfo)
       {
         $addFields: {
           clubName: '$clubInfo.name',
           category: '$clubInfo.category'
         }
       },
-      // 5. Clean up (Remove the heavy clubInfo object)
       {
         $project: {
           clubInfo: 0 
         }
       },
-      // 6. Sort by Date (Soonest first)
       { 
         $sort: { date: 1 } 
       }
