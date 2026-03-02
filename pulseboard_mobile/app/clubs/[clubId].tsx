@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  Image, 
-  ScrollView, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  SafeAreaView, 
+import {
+  View,
+  Text,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  SafeAreaView,
   StatusBar,
   Alert
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getClubById, toggleFollowClubApi } from "@/src/api/club.api";
 import { getUserProfile } from "@/src/api/user.api";
-import { fetchEventsByClub } from "@/src/api/event.api"; 
+import { fetchEventsByClub } from "@/src/api/event.api";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { ChevronLeft } from 'lucide-react-native';
 
@@ -26,7 +26,7 @@ const clubIcons: Record<number, string> = {
 export default function ClubProfileScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
   const router = useRouter();
-  
+
   const [user, setUser] = useState<any>(null);
   const [club, setClub] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
@@ -79,22 +79,22 @@ export default function ClubProfileScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#050505' }}>
       <StatusBar barStyle="light-content" />
-      
+
       <View style={{ paddingHorizontal: wp('5%'), paddingTop: hp('2%') }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ backgroundColor: 'rgba(255,255,255,0.05)', width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
-          <ChevronLeft color="white" size={24} />
+        <TouchableOpacity onPress={() => router.back()} style={{ backgroundColor: 'rgba(255,255,255,0.05)', width: hp('5%'), height: hp('5%'), borderRadius: hp('2.5%'), alignItems: 'center', justifyContent: 'center' }}>
+          <ChevronLeft color="white" size={hp('3%')} />
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: wp('6%'), paddingTop: hp('3%'), paddingBottom: hp('5%') }}>
-        
+
         {/* Header */}
-        <View style={{ alignItems: 'center', marginBottom: 24 }}>
+        <View style={{ alignItems: 'center', marginBottom: hp('3%') }}>
           <View style={{ width: hp('14%'), height: hp('14%'), borderRadius: hp('7%'), backgroundColor: '#0E0E10', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(204, 249, 0, 0.2)', overflow: 'hidden' }}>
             {club.image ? <Image source={{ uri: club.image }} style={{ width: '100%', height: '100%' }} /> : <Text style={{ fontSize: hp('6%') }}>{clubIcons[club.clubId] || '🔥'}</Text>}
           </View>
-          <Text style={{ color: 'white', fontWeight: '900', fontSize: hp('3.5%'), marginTop: 16 }}>{club.name}</Text>
-          <View style={{ marginTop: 12, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 100, backgroundColor: 'rgba(204, 249, 0, 0.1)', borderWidth: 1, borderColor: 'rgba(204, 249, 0, 0.2)' }}>
+          <Text style={{ color: 'white', fontWeight: '900', fontSize: hp('3.5%'), marginTop: hp('2%') }}>{club.name}</Text>
+          <View style={{ marginTop: hp('1.5%'), paddingHorizontal: wp('5%'), paddingVertical: hp('1%'), borderRadius: 100, backgroundColor: 'rgba(204, 249, 0, 0.1)', borderWidth: 1, borderColor: 'rgba(204, 249, 0, 0.2)' }}>
             <Text style={{ color: '#CCF900', fontWeight: '900', textTransform: 'uppercase', fontSize: hp('1.2%') }}>{club.category || 'CLUB'}</Text>
           </View>
         </View>
@@ -105,27 +105,27 @@ export default function ClubProfileScreen() {
         </TouchableOpacity>
 
         {/* Events Section */}
-        <View style={{ marginTop: 40 }}>
-          <Text style={{ color: 'white', fontWeight: '900', marginBottom: 16, fontSize: 18 }}>UPCOMING EVENTS</Text>
+        <View style={{ marginTop: hp('5%') }}>
+          <Text style={{ color: 'white', fontWeight: '900', marginBottom: hp('2%'), fontSize: hp('2.2%') }}>UPCOMING EVENTS</Text>
           {events.length > 0 ? events.map((event: any) => (
-            <View key={event._id} style={{ backgroundColor: '#0E0E10', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 28, marginRight: 16 }}>{event.icon || '📅'}</Text>
+            <View key={event._id} style={{ backgroundColor: '#0E0E10', borderRadius: 20, padding: wp('4%'), marginBottom: hp('1.5%'), borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: hp('3.5%'), marginRight: wp('4%') }}>{event.icon || '📅'}</Text>
               <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ color: event.color || '#CCF900', fontWeight: '900', fontSize: 10, marginRight: 8 }}>{event.badge}</Text>
-                  <Text style={{ color: '#737373', fontSize: 10 }}>{event.timeDisplay}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: hp('0.5%') }}>
+                  <Text style={{ color: event.color || '#CCF900', fontWeight: '900', fontSize: hp('1.2%'), marginRight: wp('2%') }}>{event.badge}</Text>
+                  <Text style={{ color: '#737373', fontSize: hp('1.2%') }}>{event.timeDisplay}</Text>
                 </View>
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>{event.title}</Text>
-                <Text style={{ color: '#52525B', fontSize: 12 }}>{event.location}</Text>
+                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: hp('1.8%') }}>{event.title}</Text>
+                <Text style={{ color: '#52525B', fontSize: hp('1.4%') }}>{event.location}</Text>
               </View>
             </View>
-          )) : <Text style={{ color: '#52525B', textAlign: 'center' }}>No events scheduled.</Text>}
+          )) : <Text style={{ color: '#52525B', textAlign: 'center', fontSize: hp('1.6%') }}>No events scheduled.</Text>}
         </View>
 
         {/* About Us Section */}
-        <View style={{ backgroundColor: '#0E0E10', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginTop: 32 }}>
-          <Text style={{ color: 'white', fontWeight: '900', marginBottom: 12, textTransform: 'uppercase', fontSize: hp('1.6%') }}>About Us</Text>
-          <Text style={{ color: '#A3A3A3', lineHeight: 22, fontSize: hp('1.7%') }}>
+        <View style={{ backgroundColor: '#0E0E10', borderRadius: 24, padding: wp('6%'), borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginTop: hp('4%') }}>
+          <Text style={{ color: 'white', fontWeight: '900', marginBottom: hp('1.5%'), textTransform: 'uppercase', fontSize: hp('1.6%') }}>About Us</Text>
+          <Text style={{ color: '#A3A3A3', lineHeight: hp('2.5%'), fontSize: hp('1.7%') }}>
             {club.description || "No description provided for this club."}
           </Text>
         </View>
