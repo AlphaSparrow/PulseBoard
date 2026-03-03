@@ -93,7 +93,8 @@ export default function RegisterScreen() {
 
   return (
     <View className="flex-1 bg-[#050505]">
-      <StatusBar barStyle="light-content" backgroundColor="#050505" />
+      {/* HIDDEN STATUS BAR */}
+      <StatusBar hidden={true} />
 
       {/* LAYER 1: The Image */}
       <ImageBackground 
@@ -122,14 +123,14 @@ export default function RegisterScreen() {
             >
               
               {/* --- Header Section --- */}
-              <View style={{ marginTop: hp('2%'), marginBottom: hp('3%') }}>
+              <View style={{ marginTop: hp('2%'), marginBottom: hp('2%') }}>
                 <TouchableOpacity 
                   onPress={() => router.back()} 
                   className="bg-[#121212]/80 border border-neutral-800 rounded-full justify-center items-center"
                   style={{ 
                       width: wp('12%'), 
                       height: wp('12%'), 
-                      marginBottom: hp('3%') 
+                      marginBottom: hp('2%') 
                   }}
                 >
                   <ChevronLeft color="white" size={wp('6%')} />
@@ -140,7 +141,7 @@ export default function RegisterScreen() {
                     <View className="rounded-full animate-pulse" style={{ width: wp('2%'), height: wp('2%'), backgroundColor: '#CCF900' }} />
                     <Text 
                         className="text-[#CCF900] font-mono uppercase"
-                        style={{ fontSize: hp('1.2%'), letterSpacing: 3 }}
+                        style={{ fontSize: hp('1.4%'), letterSpacing: 3 }}
                     >
                       New Entry
                     </Text>
@@ -148,14 +149,14 @@ export default function RegisterScreen() {
 
                   <Text 
                     className="text-white font-black italic tracking-tighter uppercase"
-                    style={{ fontSize: hp('5.5%'), lineHeight: hp('5.5%'), marginBottom: hp('2%') }}
+                    style={{ fontSize: hp('5%'), lineHeight: hp('5.5%'), marginBottom: hp('1.5%') }}
                   >
                     Create<Text className="text-[#CCF900]">.</Text>{"\n"}Account
                   </Text>
                   
                   <Text 
                     className="text-neutral-400 font-medium"
-                    style={{ fontSize: hp('1.6%'), lineHeight: hp('2.2%'), maxWidth: wp('90%') }}
+                    style={{ fontSize: hp('1.8%'), lineHeight: hp('2.4%'), maxWidth: wp('90%') }}
                   >
                     Join the PulseBoard network. Exclusive to IIT Jodhpur students.
                   </Text>
@@ -163,13 +164,13 @@ export default function RegisterScreen() {
               </View>
 
               {/* --- Form Section --- */}
-              <View style={{ gap: hp('2.5%') }}>
+              <View style={{ gap: hp('2%') }}>
                 
                 {/* Name Input */}
                 <View>
                   <Text 
                     className="text-neutral-500 font-bold uppercase"
-                    style={{ fontSize: hp('1.1%'), letterSpacing: 2, marginBottom: hp('1%'), marginLeft: wp('1%') }}
+                    style={{ fontSize: hp('1.2%'), letterSpacing: 2, marginBottom: hp('0.8%'), marginLeft: wp('1%') }}
                   >
                     Full Name
                   </Text>
@@ -177,7 +178,7 @@ export default function RegisterScreen() {
                     className={`bg-[#121212]/90 rounded-xl border flex-row items-center px-4 ${
                       focusedInput === 'name' ? 'border-[#CCF900]' : 'border-neutral-800'
                     }`}
-                    style={{ height: hp('7.5%') }}
+                    style={{ height: hp('6.5%') }}
                   >
                     <User color={focusedInput === 'name' ? LN_VOLT : '#555'} size={hp('2.5%')} style={{ marginRight: wp('3%') }} />
                     <TextInput
@@ -198,7 +199,7 @@ export default function RegisterScreen() {
                 <View>
                   <Text 
                     className="text-neutral-500 font-bold uppercase"
-                    style={{ fontSize: hp('1.1%'), letterSpacing: 2, marginBottom: hp('1%'), marginLeft: wp('1%') }}
+                    style={{ fontSize: hp('1.2%'), letterSpacing: 2, marginBottom: hp('0.8%'), marginLeft: wp('1%') }}
                   >
                     Institute Email
                   </Text>
@@ -206,7 +207,7 @@ export default function RegisterScreen() {
                     className={`bg-[#121212]/90 rounded-xl border flex-row items-center px-4 ${
                       focusedInput === 'email' ? 'border-[#CCF900]' : 'border-neutral-800'
                     }`}
-                    style={{ height: hp('7.5%') }}
+                    style={{ height: hp('6.5%') }}
                   >
                     <Mail color={focusedInput === 'email' ? LN_VOLT : '#555'} size={hp('2.5%')} style={{ marginRight: wp('3%') }} />
                     <TextInput
@@ -229,7 +230,7 @@ export default function RegisterScreen() {
                 <View>
                   <Text 
                     className="text-neutral-500 font-bold uppercase"
-                    style={{ fontSize: hp('1.1%'), letterSpacing: 2, marginBottom: hp('1%'), marginLeft: wp('1%') }}
+                    style={{ fontSize: hp('1.2%'), letterSpacing: 2, marginBottom: hp('0.8%'), marginLeft: wp('1%') }}
                   >
                     Set Password
                   </Text>
@@ -237,7 +238,7 @@ export default function RegisterScreen() {
                     className={`bg-[#121212]/90 rounded-xl border flex-row items-center px-4 ${
                       focusedInput === 'password' ? 'border-[#CCF900]' : 'border-neutral-800'
                     }`}
-                    style={{ height: hp('7.5%') }}
+                    style={{ height: hp('6.5%') }}
                   >
                     <Lock color={focusedInput === 'password' ? LN_VOLT : '#555'} size={hp('2.5%')} style={{ marginRight: wp('3%') }} />
                     <TextInput
@@ -262,7 +263,7 @@ export default function RegisterScreen() {
                 <View>
                   <Text 
                     className="text-neutral-500 font-bold uppercase"
-                    style={{ fontSize: hp('1.1%'), letterSpacing: 2, marginBottom: hp('1%'), marginLeft: wp('1%') }}
+                    style={{ fontSize: hp('1.2%'), letterSpacing: 2, marginBottom: hp('0.8%'), marginLeft: wp('1%') }}
                   >
                     Confirm Password
                   </Text>
@@ -270,7 +271,7 @@ export default function RegisterScreen() {
                     className={`bg-[#121212]/90 rounded-xl border flex-row items-center px-4 ${
                       focusedInput === 'confirm' ? 'border-[#CCF900]' : 'border-neutral-800'
                     }`}
-                    style={{ height: hp('7.5%') }}
+                    style={{ height: hp('6.5%') }}
                   >
                     <Lock color={focusedInput === 'confirm' ? LN_VOLT : '#555'} size={hp('2.5%')} style={{ marginRight: wp('3%') }} />
                     <TextInput
@@ -298,7 +299,7 @@ export default function RegisterScreen() {
                   disabled={loading}
                   activeOpacity={0.9}
                   style={{ 
-                    height: hp('7.5%'), 
+                    height: hp('6.5%'), 
                     marginTop: hp('2%'),
                     transform: [{ skewX: '-12deg' }], 
                     borderRadius: 4 
@@ -326,14 +327,14 @@ export default function RegisterScreen() {
                   <View className="flex-row items-center">
                     <Text 
                         className="text-neutral-400 font-medium mr-2"
-                        style={{ fontSize: hp('1.4%') }}
+                        style={{ fontSize: hp('1.6%') }}
                     >
                       Already have an account?
                     </Text>
                     <TouchableOpacity onPress={() => router.push('/auth/login')}>
                       <Text 
                         className="text-white font-black uppercase border-b border-[#CCF900]"
-                        style={{ fontSize: hp('1.4%'), letterSpacing: 1 }}
+                        style={{ fontSize: hp('1.6%'), letterSpacing: 1 }}
                       >
                         LOGIN
                       </Text>

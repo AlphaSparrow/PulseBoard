@@ -68,8 +68,9 @@ export const loginUser = async (
 };
 
 // --- Google Auth Function ---
-export const googleLoginUser = async (code: string) => {
-  const res = await api.post("/auth/google/callback", { code });
+// Pass the idToken received from native Google Sign-In to the backend.
+export const googleLoginUser = async (idToken: string) => {
+  const res = await api.post("/auth/google/callback", { id_token: idToken });
 
   if (res.data.token) {
     await AsyncStorage.setItem("token", res.data.token);

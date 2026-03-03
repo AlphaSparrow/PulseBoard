@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import User from "../models/User.model";
 import bcrypt from "bcryptjs";
-import { getGoogleUser } from "../services/googleOAuth.service";
+import { getGoogleUser, getGoogleUserFromIdToken } from "../services/googleOAuth.service";
 import jwt from "jsonwebtoken";
 
 // LOCAL REGISTRATION
@@ -51,15 +51,21 @@ export const register = async (req: Request, res: Response) => {
 };
 
 // Google Callback
+// Accepts either:
+//   { id_token: ".." }  — from Expo mobile (implicit/token flow)
+//   { code: ".." }     — from server-side web flow
 export const googleCallback = async (req: Request, res: Response) => {
   try {
-    const { code } = req.body;
+    const { id_token, code } = req.body;
 
-    if (!code) {
-      return res.status(400).json({ error: "Authorization code missing" });
+    if (!id_token && !code) {
+      return res.status(400).json({ error: "Provide id_token or code" });
     }
 
-    const googleUser = await getGoogleUser(code);
+    // Resolve the Google user payload
+    const googleUser = id_token
+      ? await getGoogleUserFromIdToken(id_token)
+      : await getGoogleUser(code);
 
     let user = await User.findOne({ email: googleUser.email });
 
@@ -68,7 +74,7 @@ export const googleCallback = async (req: Request, res: Response) => {
         name: googleUser.name,
         email: googleUser.email,
         googleId: googleUser.sub,
-        provider: "google", // Mark as google user
+        provider: "google",
       });
     }
 
@@ -83,7 +89,7 @@ export const googleCallback = async (req: Request, res: Response) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "OAuth failed!!!" });
+    res.status(500).json({ error: "OAuth failed" });
   }
 };
 
@@ -104,8 +110,8 @@ export const login = async (req: Request, res: Response) => {
 
     // 2. Check if they signed up with Google
     if (user.provider === "google") {
-      return res.status(400).json({ 
-        message: "Please use 'Sign in with Google' for this account" 
+      return res.status(400).json({
+        message: "Please use 'Sign in with Google' for this account"
       });
     }
 

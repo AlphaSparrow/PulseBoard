@@ -11,7 +11,9 @@ export default function WelcomeScreen() {
   return (
     // OUTER FRAME: Pitch Black Background
     <View className="flex-1 bg-black justify-center items-center" style={{ padding: wp('2%') }}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      
+      {/* HIDE STATUS BAR */}
+      <StatusBar hidden={true} />
 
       {/* INNER FRAME: The "Card" */}
       <View className="w-full h-full bg-[#050505] rounded-[20px] border border-neutral-800 relative overflow-hidden">
