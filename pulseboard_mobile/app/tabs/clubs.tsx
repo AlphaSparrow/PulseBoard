@@ -9,6 +9,8 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
+  Platform,
+  StyleSheet
 } from 'react-native';
 import { Search, Check, Plus } from 'lucide-react-native';
 import { useFocusEffect, router } from 'expo-router';
