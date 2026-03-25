@@ -2,7 +2,10 @@ import User from '../models/User.model';
 import PersonalEvent from '../models/PersonalEvent.model';
 import ProcessedEmail from '../models/ProcessedEmail.model';
 import { parseEventFromEmail } from './emailParser.service';
+import { classifyAndGetId } from './classifier.service';
 import { getGoogleClient } from '../utils/googleClient';
+
+const MISC_CATEGORY_ID = 103;
 
 let isRunning = false;
 
@@ -140,20 +143,33 @@ async function checkUserEmails(user: any) {
                 continue;
             }
 
-            // First time seeing this email — call Gemini
+            // First time seeing this email
             console.log(`[GmailWatcher] [${user.email}] From: ${from} | Subject: "${subject}"`);
 
             const bodyText = extractBody(msgData.payload);
-            const eventData = await parseEventFromEmail(subject, bodyText);
 
-            if (!eventData) {
-                // Not event-worthy — store the decision so future users skip Gemini call
+            // Step 1: HuggingFace fast filter — if Miscellaneous, skip Gemini entirely
+            const categoryId = await classifyAndGetId(subject, bodyText);
+            if (categoryId === MISC_CATEGORY_ID) {
                 await ProcessedEmail.create({
                     emailMessageId,
                     isEvent: false,
                     processedByUsers: [user._id],
                 });
-                console.log(`[GmailWatcher] Not event-worthy: "${subject}"`);
+                console.log(`[GmailWatcher] HF filtered as misc: "${subject}"`);
+                continue;
+            }
+
+            // Step 2: Gemini deep-parses the email into structured event data
+            const eventData = await parseEventFromEmail(subject, bodyText);
+
+            if (!eventData) {
+                await ProcessedEmail.create({
+                    emailMessageId,
+                    isEvent: false,
+                    processedByUsers: [user._id],
+                });
+                console.log(`[GmailWatcher] Gemini skipped: "${subject}"`);
                 continue;
             }
 

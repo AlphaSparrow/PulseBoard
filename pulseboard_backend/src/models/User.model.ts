@@ -16,6 +16,8 @@ export interface IUser extends Document {
   expoPushToken?: string;
   googleAccessToken?: string;
   googleRefreshToken?: string;
+  resetOtp?: string;
+  resetOtpExpires?: Date;
 }
 
 const UserSchema: Schema<IUser> = new Schema(
@@ -65,6 +67,14 @@ const UserSchema: Schema<IUser> = new Schema(
 
     expoPushToken: {
       type: String,
+    },
+
+    resetOtp: {
+      type: String,
+    },
+
+    resetOtpExpires: {
+      type: Date,
     },
 
     year: Number,
