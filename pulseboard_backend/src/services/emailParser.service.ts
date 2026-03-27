@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from 'axios';
 
 export interface ParsedEvent {
     title: string;
@@ -59,12 +59,24 @@ Color guide: "#6366F1" tech, "#F59E0B" cultural, "#10B981" sports/health, "#3B82
 `;
 
     try {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
-        const result = await model.generateContent(prompt);
-        const text = result.response.text().trim();
+        const response = await axios.post(
+            'https://api.groq.com/openai/v1/chat/completions',
+            {
+                model: 'llama-3.1-8b-instant',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.1,
+                max_tokens: 500,
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                timeout: 15000,
+            }
+        );
 
-        // Strip markdown code fences if Gemini wraps in ```json ... ```
+        const text = (response.data as any).choices[0].message.content.trim();
         const clean = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
         const parsed = JSON.parse(clean);
 
@@ -81,8 +93,8 @@ Color guide: "#6366F1" tech, "#F59E0B" cultural, "#10B981" sports/health, "#3B82
             color: parsed.color || '#CCF900',
         };
     } catch (err) {
-        console.error('[EmailParser] Gemini failed, using regex fallback:', (err as Error).message);
-        return smartRegexParse(subject, body); // fallback so inbox shows something while Gemini quota is exhausted
+        console.error('[EmailParser] Groq failed, using regex fallback:', (err as Error).message);
+        return smartRegexParse(subject, body);
     }
 }
 
