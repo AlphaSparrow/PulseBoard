@@ -60,7 +60,7 @@ Color guide: "#6366F1" tech, "#F59E0B" cultural, "#10B981" sports/health, "#3B82
 
     try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
         const result = await model.generateContent(prompt);
         const text = result.response.text().trim();
 
@@ -81,17 +81,22 @@ Color guide: "#6366F1" tech, "#F59E0B" cultural, "#10B981" sports/health, "#3B82
             color: parsed.color || '#CCF900',
         };
     } catch (err) {
-        console.error('[EmailParser] Gemini failed, using smart regex fallback:', (err as Error).message.slice(0, 100));
-        return smartRegexParse(subject, body);
+        console.error('[EmailParser] Gemini failed, using regex fallback:', (err as Error).message);
+        return smartRegexParse(subject, body); // fallback so inbox shows something while Gemini quota is exhausted
     }
 }
 
 /**
  * Smart regex-based fallback when Gemini is unavailable.
- * Extracts time, location, date, and icon from any email body.
+ * Returns null if the email has no event-like keywords (filters spam/OTPs/alerts).
  */
-function smartRegexParse(subject: string, body: string): ParsedEvent {
+function smartRegexParse(subject: string, body: string): ParsedEvent | null {
     const text = `${subject} ${body}`;
+    const lc = text.toLowerCase();
+
+    // Must contain at least one event-like keyword to be treated as an event
+    const eventKeywords = /\b(event|workshop|seminar|webinar|talk|lecture|hackathon|fest|festival|competition|contest|deadline|submission|registration|form|attend|participate|invite|rsvp|club|society|orientation|induction|placement|interview|internship|scholarship|opportunity|campus|notice|reminder|session|bootcamp|training)\b/i;
+    if (!eventKeywords.test(lc)) return null;
 
     // --- Extract TIME ---
     const timeMatch = text.match(/\b(\d{1,2}(?::\d{2})?\s*(?:AM|PM|am|pm))\b/);
@@ -116,7 +121,6 @@ function smartRegexParse(subject: string, body: string): ParsedEvent {
     }
 
     // --- Pick ICON based on keywords ---
-    const lc = text.toLowerCase();
     let icon = '📅';
     if (/hackathon|code|coding|dev|software/i.test(lc)) icon = '💻';
     else if (/fest|festival|cultural|dance|music|sing|perform/i.test(lc)) icon = '🎭';
@@ -135,7 +139,7 @@ function smartRegexParse(subject: string, body: string): ParsedEvent {
 
     return {
         title: subject || 'Untitled Event',
-        description: body.slice(0, 300),
+        description: body.slice(0, 3000),
         date,
         timeDisplay,
         location,

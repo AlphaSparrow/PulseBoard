@@ -148,8 +148,16 @@ async function checkUserEmails(user: any) {
 
             const bodyText = extractBody(msgData.payload);
 
-            // Step 1: HuggingFace fast filter — if Miscellaneous, skip Gemini entirely
-            const categoryId = await classifyAndGetId(subject, bodyText);
+            // Step 1: HuggingFace fast filter (with timeout guard)
+            // MISC_CATEGORY_ID (103) with high confidence → skip Gemini
+            // -1 (uncertain/timeout) → pass to Gemini to decide
+            let categoryId = -1;
+            try {
+                categoryId = await Promise.race([
+                    classifyAndGetId(subject, bodyText),
+                    new Promise<number>((resolve) => setTimeout(() => resolve(-1), 35_000)),
+                ]) as number;
+            } catch { categoryId = -1; }
             if (categoryId === MISC_CATEGORY_ID) {
                 await ProcessedEmail.create({
                     emailMessageId,
@@ -214,7 +222,6 @@ async function checkUserEmails(user: any) {
 async function checkAllUsers() {
     try {
         const googleUsers = await User.find({
-            provider: 'google',
             $or: [
                 { googleAccessToken: { $exists: true, $ne: null } },
                 { googleRefreshToken: { $exists: true, $ne: null } },

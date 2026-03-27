@@ -1,4 +1,9 @@
 import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
+
+const initSendGrid = () => {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+};
 
 const transporter = nodemailer.createTransport({
   service: "gmail",

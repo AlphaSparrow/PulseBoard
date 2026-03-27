@@ -94,10 +94,10 @@ export const classifyAndGetId = async (subject: string, body: string, retryCount
 
     console.log(`✅ AI Predicted: "${winningName}" with ${(confidence * 100).toFixed(2)}% confidence.`);
 
-    // 5. Confidence Threshold (50%)
-    if (confidence < 0.7) {
-      console.log("📉 Confidence too low (< 70%). Categorizing as Miscellaneous.");
-      return 103;
+    // 5. If confidence is low, return -1 so Gemini makes the final decision
+    if (confidence < 0.5) {
+      console.log("📉 Low confidence — passing to Gemini.");
+      return -1;
     }
 
     // 6. Final Match with DB (Case-Insensitive and Trimmed)
@@ -123,6 +123,6 @@ export const classifyAndGetId = async (subject: string, body: string, retryCount
     }
 
     console.error("❌ AI Classification Error:", errorData || error.message);
-    return 103; 
+    return -1; // uncertain — let Gemini decide
   }
 };
