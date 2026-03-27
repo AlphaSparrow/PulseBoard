@@ -4,6 +4,7 @@ import ProcessedEmail from '../models/ProcessedEmail.model';
 import { parseEventFromEmail } from './emailParser.service';
 import { classifyAndGetId } from './classifier.service';
 import { getGoogleClient } from '../utils/googleClient';
+import { sendPushNotification } from './notification.service';
 
 const MISC_CATEGORY_ID = 103;
 
@@ -131,6 +132,14 @@ async function checkUserEmails(user: any) {
                         sourceSubject: subject,
                     }).catch(() => {}); // ignore if somehow already exists
 
+                    if (user.expoPushToken) {
+                        sendPushNotification(
+                            user.expoPushToken,
+                            `${existing.eventIcon} New Event in Smart Inbox`,
+                            existing.eventTitle!,
+                        ).catch(() => {});
+                    }
+
                     console.log(`[GmailWatcher] Reused cached event "${existing.eventTitle}" for ${user.email}`);
                 }
 
@@ -210,6 +219,14 @@ async function checkUserEmails(user: any) {
                 sourceFrom: from,
                 sourceSubject: subject,
             });
+
+            if (user.expoPushToken) {
+                sendPushNotification(
+                    user.expoPushToken,
+                    `${eventData.icon} New Event in Smart Inbox`,
+                    eventData.title,
+                ).catch(() => {});
+            }
 
             console.log(`[GmailWatcher] Created personal event: "${eventData.title}" for ${user.email}`);
 

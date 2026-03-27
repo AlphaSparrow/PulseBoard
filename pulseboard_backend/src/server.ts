@@ -14,6 +14,7 @@ import personalEventRoutes from "./routes/personalEvent.routes";
 import categoryRoutes from "./routes/category.routes";
 import mailRoutes from "./routes/mail.routes";
 import { startGmailWatcher } from "./services/gmailWatcher.service";
+import { startReminderScheduler } from "./services/reminderScheduler.service";
 
 const app = express();
 
@@ -43,4 +44,5 @@ mongoose
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
   startGmailWatcher(300_000);
+  startReminderScheduler();
 });

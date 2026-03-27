@@ -15,6 +15,7 @@ import {
 import { router } from 'expo-router';
 import { Eye, EyeOff, ChevronLeft, Mail, Lock, Zap } from 'lucide-react-native';
 import { loginUser, googleLoginUser } from '../../src/services/auth.service';
+import api from '../../src/api/client';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
@@ -104,7 +105,12 @@ export default function LoginScreen() {
 
         const data = await googleLoginUser({ code, redirectUri: proxyRedirectUri });
         if (data.token) {
-          // Club portal routing logic
+          // Send push token to backend now that we're authenticated
+          const pushToken = await AsyncStorage.getItem('expoPushToken');
+          if (pushToken) {
+            api.post('/users/save-push-token', { expoPushToken: pushToken }).catch(() => {});
+          }
+
           const clubEmails = [
             'quantclub@iitj.ac.in', 'devluplabs@iitj.ac.in', 'raid@iitj.ac.in',
             'inside@iitj.ac.in', 'theproductcub@iitj.ac.in', 'theproductclub@iitj.ac.in',
@@ -114,11 +120,6 @@ export default function LoginScreen() {
           ];
 
           const userEmail = data.user?.email || '';
-
-          // Small delay to let the browser tab fully close before navigating.
-          // On Android, navigating while the Custom Chrome Tab is still dismissing
-          // can cause Expo Router to show an unmatched route screen.
-          // (Delay removed: Bug fixed via valid returnUrl)
           if (clubEmails.includes(userEmail.toLowerCase().trim())) {
             router.replace('/club_tabs/home');
           } else {
@@ -150,6 +151,12 @@ export default function LoginScreen() {
 
       if (response.token) {
         await AsyncStorage.setItem('token', response.token);
+
+        // Send push token now that auth token is stored
+        const pushToken = await AsyncStorage.getItem('expoPushToken');
+        if (pushToken) {
+          api.post('/users/save-push-token', { expoPushToken: pushToken }).catch(() => {});
+        }
 
         // Club portal routing logic
         const clubEmails = [

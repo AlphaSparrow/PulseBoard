@@ -2,25 +2,19 @@ import "../global.css";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { registerForPushNotifications } from "../src/services/notifications";
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import api from "../src/api/client";
 
 export default function RootLayout() {
- useEffect(() => {
-  registerForPushNotifications().then((token) => {
-    if (token) {
-      console.log("Expo Push Token:", token);
-
-   fetch(`${API_URL}/api/push-token`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ token }),
-});
-    }
-  });
+  useEffect(() => {
+    registerForPushNotifications().then(async (pushToken) => {
+      if (!pushToken) return;
+      // Always store locally so login screen can send it after auth
+      await AsyncStorage.setItem("expoPushToken", pushToken);
+      // Also try immediately — works for returning users already logged in
+      api.post("/users/save-push-token", { expoPushToken: pushToken }).catch(() => {});
+    });
   }, []);
 
   return (

@@ -13,6 +13,7 @@ export interface IPersonalEvent extends Document {
   color?: string;
   sourceFrom: string;
   sourceSubject: string;
+  reminderSent?: boolean;
 }
 
 const PersonalEventSchema: Schema = new Schema(
@@ -29,6 +30,7 @@ const PersonalEventSchema: Schema = new Schema(
     color: { type: String, default: '#CCF900' },
     sourceFrom: { type: String, default: '' },
     sourceSubject: { type: String, default: '' },
+    reminderSent: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
