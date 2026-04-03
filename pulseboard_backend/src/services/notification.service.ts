@@ -8,7 +8,7 @@ export async function sendPushNotification(
     body: string,
     data: Record<string, any> = {}
 ): Promise<void> {
-    if (!expoPushToken?.startsWith('ExponentPushToken')) return;
+    if (!expoPushToken?.startsWith('ExponentPushToken') && !expoPushToken?.startsWith('ExpoPushToken')) return;
 
     try {
         const res = await fetch('https://exp.host/--/api/v2/push/send', {
@@ -26,7 +26,9 @@ export async function sendPushNotification(
             }),
         });
         const json = await res.json();
-        console.log(`[Notifications] Sent "${title}" → status: ${json?.data?.status} ticket: ${json?.data?.id}`);
+        const status = json?.data?.[0]?.status;
+        const ticketId = json?.data?.[0]?.id || 'N/A';
+        console.log(`[Notifications] Sent "${title}" → status: ${status} ticket: ${ticketId}`);
     } catch (err) {
         console.error('[Notifications] Failed to send push:', (err as Error).message);
     }

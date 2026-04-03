@@ -13,18 +13,15 @@ import emailRoutes from "./routes/email.routes";
 import personalEventRoutes from "./routes/personalEvent.routes";
 import categoryRoutes from "./routes/category.routes";
 import mailRoutes from "./routes/mail.routes";
+import calendarRoutes from "./routes/calendar.routes";
 import { startGmailWatcher } from "./services/gmailWatcher.service";
 import { startReminderScheduler } from "./services/reminderScheduler.service";
-
+import { initCronJobs } from './jobs/cron';
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use((req, res, next) => {
-  console.log(`[REQUEST] ${req.method} ${req.url}`);
-  next();
-});
 
 app.use("/api/auth", router);
 app.use("/api/clubs", clubRoutes);
@@ -34,15 +31,26 @@ app.use("/api/email", emailRoutes);
 app.use("/api/personal-events", personalEventRoutes);
 app.use("/api/mails", mailRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/calendar", calendarRoutes);
 app.use("/api", testRoutes);
 
+// --- DATABASE & SERVER START ---
 mongoose
   .connect(process.env.MONGO_URI!)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error(err));
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    
+    // 1. Start the cron job scheduler once DB is ready
+    initCronJobs(); 
+  })
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  
+  // 2. Start your background services
   startGmailWatcher(300_000);
   startReminderScheduler();
 });
