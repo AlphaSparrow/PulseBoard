@@ -1,15 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import {
     View, Text, ScrollView, SafeAreaView, StatusBar,
-    ActivityIndicator, Platform, TouchableOpacity, Modal, TextInput
+    ActivityIndicator, Platform, TouchableOpacity, Modal, TextInput, Alert, Image
 } from 'react-native';
-import { Clock, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Clock, ChevronLeft, ChevronRight, ImageUp, X } from 'lucide-react-native';
 import { useFocusEffect } from 'expo-router';
 import { getEventFeed } from '../../src/api/event.api';
 import { getUserProfile } from '../../src/api/user.api';
 import { getAllClubs } from '../../src/api/club.api';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { MotiView } from 'moti';
+import * as ImagePicker from 'expo-image-picker';
 
 const THEME_ACCENT = '#CCF900';
 const BG_MAIN = '#050505';
@@ -31,12 +32,30 @@ export default function ClubHistoryScreen() {
     const [editTimeDisplay, setEditTimeDisplay] = useState('');
     const [editDate, setEditDate] = useState('');
     const [editDescription, setEditDescription] = useState('');
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
 
     // Date/Time Picker State
     const [editDateObj, setEditDateObj] = useState(new Date());
     const [editTimeObj, setEditTimeObj] = useState(new Date());
     const [showEditDatePicker, setShowEditDatePicker] = useState(false);
     const [showEditTimePicker, setShowEditTimePicker] = useState(false);
+
+    const pickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'We need gallery access to upload an event image.');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: false,
+            quality: 0.8,
+        });
+        if (!result.canceled && result.assets.length > 0) {
+            setSelectedImage(result.assets[0].uri);
+        }
+    };
 
 
     useFocusEffect(
@@ -85,6 +104,7 @@ export default function ClubHistoryScreen() {
         setEditTimeDisplay(event.timeDisplay || '');
         setEditDate(event.date || '');
         setEditDescription(event.description || '');
+        setSelectedImage(event.imageUrl || null);
 
         // Parse existing date/time into Date objects for the pickers
         const parsedDate = event.date ? new Date(event.date) : new Date();
@@ -119,14 +139,14 @@ export default function ClubHistoryScreen() {
         // Optimistic UI Update:
         setEvents(prevEvents => prevEvents.map(e => {
             if (e._id === selectedPost._id) {
-                return { ...e, title: editTitle, location: editLocation, timeDisplay: editTimeDisplay, date: updatedDate, description: editDescription };
+                return { ...e, title: editTitle, location: editLocation, timeDisplay: editTimeDisplay, date: updatedDate, description: editDescription, imageUrl: selectedImage };
             }
             return e;
         }));
 
         // Switch back to view mode
         setIsEditing(false);
-        setSelectedPost({ ...selectedPost, title: editTitle, location: editLocation, timeDisplay: editTimeDisplay, date: updatedDate, description: editDescription });
+        setSelectedPost({ ...selectedPost, title: editTitle, location: editLocation, timeDisplay: editTimeDisplay, date: updatedDate, description: editDescription, imageUrl: selectedImage });
     };
 
     return (
@@ -188,6 +208,15 @@ export default function ClubHistoryScreen() {
                                 {selectedPost && !isEditing ? (
                                     <>
                                         {/* View Mode */}
+                                        {selectedPost.imageUrl && (
+                                            <TouchableOpacity activeOpacity={0.9} onPress={() => setFullScreenImage(selectedPost.imageUrl)}>
+                                                <Image 
+                                                    source={{ uri: selectedPost.imageUrl }}
+                                                    style={{ width: '100%', height: hp('20%'), borderRadius: 16, marginBottom: hp('2%') }}
+                                                    resizeMode="cover"
+                                                />
+                                            </TouchableOpacity>
+                                        )}
                                         <Text style={{ color: 'white', fontSize: hp('2.8%'), fontWeight: 'bold', marginBottom: hp('1%') }}>{selectedPost.title}</Text>
                                         <Text style={{ color: '#A3A3A3', fontSize: hp('1.8%'), marginBottom: hp('1%') }}>Location: {selectedPost.location}</Text>
                                         <Text style={{ color: '#A3A3A3', fontSize: hp('1.8%'), marginBottom: hp('2%') }}>Time: {selectedPost.timeDisplay}</Text>
@@ -288,6 +317,50 @@ export default function ClubHistoryScreen() {
                                             textAlignVertical="top"
                                         />
 
+                                        <Text style={{ color: '#737373', marginBottom: hp('0.5%'), fontSize: hp('1.5%') }}>Event Poster</Text>
+                                        <TouchableOpacity
+                                            activeOpacity={0.8}
+                                            onPress={pickImage}
+                                            style={{
+                                                marginTop: hp('1%'),
+                                                flexDirection: 'row',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: wp('3%'),
+                                                paddingVertical: hp('1.8%'),
+                                                paddingHorizontal: wp('6%'),
+                                                borderRadius: 999,
+                                                backgroundColor: '#1A1A1A',
+                                                borderWidth: 1.5,
+                                                borderColor: 'rgba(204, 249, 0, 0.25)',
+                                                alignSelf: 'center',
+                                                marginBottom: hp('1%'),
+                                            }}
+                                        >
+                                            <ImageUp color={THEME_ACCENT} size={hp('2.5%')} strokeWidth={2} />
+                                            <Text style={{ color: 'white', fontSize: hp('1.7%'), fontWeight: '800', letterSpacing: 0.5 }}>
+                                                {selectedImage ? 'Change Image' : 'Select File'}
+                                            </Text>
+                                        </TouchableOpacity>
+
+                                        {selectedImage && (
+                                            <View style={{ marginTop: hp('1.5%'), alignItems: 'center', marginBottom: hp('2%') }}>
+                                                <View style={{ borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#27272A', backgroundColor: '#0A0A0A' }}>
+                                                    <Image
+                                                        source={{ uri: selectedImage }}
+                                                        style={{ width: wp('76%'), height: undefined, aspectRatio: 1, maxHeight: hp('25%'), borderRadius: 16 }}
+                                                        resizeMode="contain"
+                                                    />
+                                                </View>
+                                                <TouchableOpacity
+                                                    onPress={() => setSelectedImage(null)}
+                                                    style={{ marginTop: hp('0.8%') }}
+                                                >
+                                                    <Text style={{ color: '#EF4444', fontSize: hp('1.3%'), fontWeight: '700' }}>Remove Image</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+
                                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: hp('1%') }}>
                                             <TouchableOpacity onPress={() => setIsEditing(false)} style={{ flex: 1, backgroundColor: '#333', padding: hp('1.5%'), borderRadius: 10, marginRight: wp('2%'), alignItems: 'center' }}>
                                                 <Text style={{ color: 'white', fontWeight: 'bold' }}>Cancel</Text>
@@ -303,6 +376,23 @@ export default function ClubHistoryScreen() {
                     </View>
                 </Modal>
             </SafeAreaView>
+
+            {/* Full Screen Image Modal */}
+            <Modal visible={!!fullScreenImage} transparent={true} animationType="fade" onRequestClose={() => setFullScreenImage(null)}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
+                    <TouchableOpacity style={{ position: 'absolute', top: hp('5%'), right: wp('5%'), zIndex: 10, padding: wp('3%') }} onPress={() => setFullScreenImage(null)}>
+                        <X color="white" size={hp('3.5%')} />
+                    </TouchableOpacity>
+                    {fullScreenImage && (
+                        <Image 
+                            source={{ uri: fullScreenImage }}
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode="contain"
+                        />
+                    )}
+                </View>
+            </Modal>
+
         </View>
     );
 }

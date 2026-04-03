@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import {
     Menu, Calendar, PlayCircle, MapPin, LogOut,
-    X, Grid, Siren, Settings, ChevronRight, Plus, Mail, ChevronLeft, ImageUp
+    X, Grid, Siren, Settings, ChevronRight, Plus, Mail, ChevronLeft, ImageUp, Clock
 } from 'lucide-react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { getEventFeed, createEventApi } from '../../src/api/event.api';
@@ -88,6 +88,20 @@ export default function ClubHomeScreen() {
     const [eventTime, setEventTime] = useState(new Date());
     const [emailModalVisible, setEmailModalVisible] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+    const [selectedEvent, setSelectedEvent] = useState<any>(null);
+    const [eventModalVisible, setEventModalVisible] = useState(false);
+    const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
+
+    const openEventModal = (event: any) => {
+        setSelectedEvent(event);
+        setEventModalVisible(true);
+    };
+
+    const closeEventModal = () => {
+        setEventModalVisible(false);
+        setSelectedEvent(null);
+    };
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -203,7 +217,7 @@ export default function ClubHomeScreen() {
                         {liveEvents.map((event: any) => {
                             const cardColor = event.color || THEME_ACCENT;
                             return (
-                                <TouchableOpacity key={event._id} activeOpacity={0.8} style={{ width: wp('55%'), backgroundColor: '#121212', borderRadius: 32, marginRight: wp('4%'), overflow: 'hidden' }}>
+                                <TouchableOpacity key={event._id} onPress={() => openEventModal(event)} activeOpacity={0.8} style={{ width: wp('55%'), backgroundColor: '#121212', borderRadius: 32, marginRight: wp('4%'), overflow: 'hidden' }}>
                                     {event.imageUrl && (
                                         <Image style={{ width: '100%', height: hp('14%') }} source={{ uri: event.imageUrl }} resizeMode="cover" />
                                     )}
@@ -234,7 +248,7 @@ export default function ClubHomeScreen() {
                             const cardColor = event.color || '#fff';
                             const dateObj = new Date(event.date);
                             return (
-                                <TouchableOpacity key={event._id} activeOpacity={0.7} style={{ width: '100%', backgroundColor: '#121212', borderRadius: 24, padding: wp('4%'), flexDirection: 'row', alignItems: 'center' }}>
+                                <TouchableOpacity key={event._id} onPress={() => openEventModal(event)} activeOpacity={0.7} style={{ width: '100%', backgroundColor: '#121212', borderRadius: 24, padding: wp('4%'), flexDirection: 'row', alignItems: 'center' }}>
                                     <View style={{ width: wp('16%'), height: wp('16%'), borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: wp('4%'), backgroundColor: '#1A1A1A' }}>
                                         <Text style={{ fontSize: hp('1.2%'), fontWeight: '900', color: '#737373' }}>{dateObj.toLocaleString('default', { month: 'short' }).toUpperCase()}</Text>
                                         <Text style={{ color: 'white', fontSize: hp('2.5%'), fontWeight: '900' }}>{dateObj.getDate()}</Text>
@@ -454,6 +468,82 @@ export default function ClubHomeScreen() {
                             Powered by Gemini AI · Events appear within seconds
                         </Text>
                     </View>
+                </View>
+            </Modal>
+
+            {/* EVENT DETAILS MODAL */}
+            <Modal
+                visible={eventModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={closeEventModal}
+            >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: wp('4%') }}>
+                    <View style={{ width: '100%', maxHeight: hp('85%'), backgroundColor: '#121212', borderRadius: 24, padding: wp('6%'), borderWidth: 1, borderColor: '#222' }}>
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp('2%') }}>
+                            {selectedEvent && (
+                                <>
+                                    {selectedEvent.imageUrl ? (
+                                        <TouchableOpacity activeOpacity={0.9} onPress={() => setFullScreenImage(selectedEvent.imageUrl)}>
+                                            <Image 
+                                                source={{ uri: selectedEvent.imageUrl }}
+                                                style={{ width: '100%', height: hp('20%'), borderRadius: 16, marginBottom: hp('2%') }}
+                                                resizeMode="cover"
+                                            />
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <View style={{ alignItems: 'center', marginBottom: hp('2%') }}>
+                                            <Text style={{ fontSize: hp('6%') }}>{selectedEvent.icon}</Text>
+                                        </View>
+                                    )}
+                                    <Text style={{ color: '#CCF900', fontSize: hp('1.4%'), fontWeight: 'bold', letterSpacing: 1, textTransform: 'uppercase', marginBottom: hp('0.5%') }}>{selectedEvent.clubName}</Text>
+                                    <Text style={{ color: 'white', fontSize: hp('2.8%'), fontWeight: 'bold', marginBottom: hp('2%') }}>{selectedEvent.title}</Text>
+                                    
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: hp('1%') }}>
+                                        <MapPin color="#737373" size={hp('2%')} style={{ marginRight: wp('2%') }} />
+                                        <Text style={{ color: '#A3A3A3', fontSize: hp('1.8%') }}>{selectedEvent.location}</Text>
+                                    </View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: hp('1%') }}>
+                                        <Clock color="#737373" size={hp('2%')} style={{ marginRight: wp('2%') }} />
+                                        <Text style={{ color: '#A3A3A3', fontSize: hp('1.8%') }}>{selectedEvent.timeDisplay}</Text>
+                                    </View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: hp('2%') }}>
+                                        <Calendar color="#737373" size={hp('2%')} style={{ marginRight: wp('2%') }} />
+                                        <Text style={{ color: '#A3A3A3', fontSize: hp('1.8%') }}>{new Date(selectedEvent.date).toDateString()}</Text>
+                                    </View>
+                                    
+                                    {selectedEvent.description && (
+                                        <View style={{ marginTop: hp('1.5%'), marginBottom: hp('2%') }}>
+                                            <Text style={{ color: 'white', fontSize: hp('1.8%'), fontWeight: 'bold', marginBottom: hp('1%') }}>About Event</Text>
+                                            <Text style={{ color: '#A3A3A3', fontSize: hp('1.6%'), lineHeight: hp('2.4%') }}>{selectedEvent.description}</Text>
+                                        </View>
+                                    )}
+
+                                    <View style={{ marginTop: hp('2%') }}>
+                                        <TouchableOpacity onPress={closeEventModal} style={{ backgroundColor: '#1A1A1A', padding: hp('1.8%'), borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#333' }}>
+                                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: hp('1.8%') }}>Close</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </>
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Full Screen Image Modal */}
+            <Modal visible={!!fullScreenImage} transparent={true} animationType="fade" onRequestClose={() => setFullScreenImage(null)}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
+                    <TouchableOpacity style={{ position: 'absolute', top: hp('5%'), right: wp('5%'), zIndex: 10, padding: wp('3%') }} onPress={() => setFullScreenImage(null)}>
+                        <X color="white" size={hp('3.5%')} />
+                    </TouchableOpacity>
+                    {fullScreenImage && (
+                        <Image 
+                            source={{ uri: fullScreenImage }}
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode="contain"
+                        />
+                    )}
                 </View>
             </Modal>
 
