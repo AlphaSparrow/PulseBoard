@@ -11,7 +11,11 @@ import { sendPushNotification } from '../services/notification.service';
  */
 export const createEvent = async (req: Request, res: Response) => {
   try {
-    const newEvent = new Event(req.body);
+    const eventData = { ...req.body };
+    if (req.file) {
+      eventData.imageUrl = req.file.path;
+    }
+    const newEvent = new Event(eventData);
     const savedEvent = await newEvent.save();
 
     // Notify all followers of this club in the background

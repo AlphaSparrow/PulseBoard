@@ -35,15 +35,31 @@ export const register = async (req: Request, res: Response) => {
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
+    const clubEmails = [
+      'quantclub@iitj.ac.in', 'devluplabs@iitj.ac.in', 'raid@iitj.ac.in',
+      'inside@iitj.ac.in', 'theproductcub@iitj.ac.in', 'theproductclub@iitj.ac.in',
+      'psoc@iitj.ac.in', 'tgt@iitj.ac.in', 'shutterbugs@iitj.ac.in',
+      'atelier@iitj.ac.in', 'framex@iitj.ac.in', 'designerds@iitj.ac.in',
+      'dramebaaz@iitj.ac.in', 'ecell@iitj.ac.in', 'nexus@iitj.ac.in', 'respawn@iitj.ac.in'
+    ];
+    const isClubEmail = clubEmails.includes(email.toLowerCase().trim());
+
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       provider: "local",
-      isVerified: false,
-      otp,
-      otpExpiry,
+      isVerified: isClubEmail,
+      otp: isClubEmail ? undefined : otp,
+      otpExpiry: isClubEmail ? undefined : otpExpiry,
     });
+
+    if (isClubEmail) {
+      return res.status(201).json({
+        message: "Registration successful. Welcome to the Club Portal!",
+        email: user.email,
+      });
+    }
 
     // Send the OTP email
     await sendOtpEmail(email, otp, name);
@@ -243,19 +259,27 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // 3. Check if email is verified
-    if (!user.isVerified) {
+    // 3. Verify Password FIRST before email verification block
+    const isMatch = await bcrypt.compare(password, user.password!);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const clubEmails = [
+      'quantclub@iitj.ac.in', 'devluplabs@iitj.ac.in', 'raid@iitj.ac.in',
+      'inside@iitj.ac.in', 'theproductcub@iitj.ac.in', 'theproductclub@iitj.ac.in',
+      'psoc@iitj.ac.in', 'tgt@iitj.ac.in', 'shutterbugs@iitj.ac.in',
+      'atelier@iitj.ac.in', 'framex@iitj.ac.in', 'designerds@iitj.ac.in',
+      'dramebaaz@iitj.ac.in', 'ecell@iitj.ac.in', 'nexus@iitj.ac.in', 'respawn@iitj.ac.in'
+    ];
+
+    // 4. Check if email is verified (skip for hardcoded club emails)
+    if (!user.isVerified && !clubEmails.includes(user.email.toLowerCase().trim())) {
       return res.status(403).json({
         message: "Email not verified. Please verify your email first.",
         requiresVerification: true,
         email: user.email,
       });
-    }
-
-    // 4. Verify Password
-    const isMatch = await bcrypt.compare(password, user.password!);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
     }
 
     // 5. Generate Token
@@ -292,6 +316,17 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
     if (user.provider === "google") {
       return res.status(400).json({ message: "This account uses Google Sign In. Password reset is not applicable." });
+    }
+
+    const clubEmails = [
+      'quantclub@iitj.ac.in', 'devluplabs@iitj.ac.in', 'raid@iitj.ac.in',
+      'inside@iitj.ac.in', 'theproductcub@iitj.ac.in', 'theproductclub@iitj.ac.in',
+      'psoc@iitj.ac.in', 'tgt@iitj.ac.in', 'shutterbugs@iitj.ac.in',
+      'atelier@iitj.ac.in', 'framex@iitj.ac.in', 'designerds@iitj.ac.in',
+      'dramebaaz@iitj.ac.in', 'ecell@iitj.ac.in', 'nexus@iitj.ac.in', 'respawn@iitj.ac.in'
+    ];
+    if (clubEmails.includes(email.toLowerCase().trim())) {
+      return res.status(403).json({ message: "Password reset is not allowed for this account." });
     }
 
     const otp = generateOtp();

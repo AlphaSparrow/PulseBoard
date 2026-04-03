@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IEvent extends Document {
+  imageUrl?: string;
   clubId: number;      // The link to the Club ID (e.g., 11, 15)
   title: string;
   description?: string;
@@ -13,7 +14,8 @@ export interface IEvent extends Document {
 }
 
 const EventSchema: Schema = new Schema({
-  clubId: { type: Number, required: true, index: true }, 
+  imageUrl: { type: String },
+  clubId: { type: Number, required: true, index: true },
   title: { type: String, required: true },
   description: { type: String },
   icon: { type: String, default: '📅' },

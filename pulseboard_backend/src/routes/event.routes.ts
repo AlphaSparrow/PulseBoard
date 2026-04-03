@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { createEvent, getEventFeed, getEventsByClubId } from '../controllers/event.controller'; // .ts extension needed
+import { upload } from '../middlewares/upload';
 
 const router = Router();
 
 // POST /api/events - Create a new event
-router.post('/', createEvent);
+router.post('/', upload.single('image'), createEvent);
 
 // GET /api/events/feed - Get the merged feed
 router.get('/feed', getEventFeed);

@@ -40,9 +40,13 @@ export const fetchEventsByClub = async (clubId: number) => {
  * Create a new event in MongoDB
  * Matches your POST /api/events route
  */
-export const createEventApi = async (eventData: any) => {
+export const createEventApi = async (formData: FormData) => {
   try {
-    const response = await api.post('/events', eventData);
+    const response = await api.post('/events', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   } catch (error) {
     console.error('Error creating event:', error);
