@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, StyleSheet, Alert, TextInput, Modal, Share } from 'react-native';
 import { Settings, Calendar, LogOut, ChevronRight, Edit2, Share2 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -28,6 +28,8 @@ export default function ProfileScreen() {
   const { isDark } = useTheme();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editName, setEditName] = useState('');
 
   const colors = {
     bg: isDark ? THEME_BG_DARK : THEME_BG_LIGHT,
@@ -53,6 +55,31 @@ export default function ProfileScreen() {
     };
     loadData();
   }, []);
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Check out ${user?.name || 'my'} profile on PulseBoard!\nIIT Jodhpur Campus App`,
+        title: 'PulseBoard Profile',
+      });
+    } catch (e) {}
+  };
+
+  const handleSaveName = async () => {
+    if (!editName.trim()) {
+      Alert.alert('Error', 'Name cannot be empty.');
+      return;
+    }
+    try {
+      const api = (await import('../../src/api/client')).default;
+      await api.patch('/users/me', { name: editName.trim() });
+      setUser(prev => prev ? { ...prev, name: editName.trim() } : prev);
+      setEditModalVisible(false);
+      Alert.alert('Success', 'Name updated!');
+    } catch (e) {
+      Alert.alert('Error', 'Could not update name. Try again.');
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -150,11 +177,19 @@ export default function ProfileScreen() {
 
             {/* Small Action Buttons */}
             <View style={styles.miniActionRow}>
-                <TouchableOpacity style={[styles.miniBtn, { backgroundColor: colors.button, borderColor: colors.border }]}>
+                <TouchableOpacity
+                  style={[styles.miniBtn, { backgroundColor: colors.button, borderColor: colors.border }]}
+                  onPress={() => { setEditName(user?.name || ''); setEditModalVisible(true); }}
+                  activeOpacity={0.7}
+                >
                     <Edit2 size={12} color={colors.text} />
                     <Text style={[styles.miniBtnText, { color: colors.text }]}>Edit</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.miniBtn, { backgroundColor: colors.button, borderColor: colors.border }]}>
+                <TouchableOpacity
+                  style={[styles.miniBtn, { backgroundColor: colors.button, borderColor: colors.border }]}
+                  onPress={handleShare}
+                  activeOpacity={0.7}
+                >
                     <Share2 size={12} color={colors.text} />
                     <Text style={[styles.miniBtnText, { color: colors.text }]}>Share</Text>
                 </TouchableOpacity>
@@ -174,6 +209,42 @@ export default function ProfileScreen() {
         </View>
 
       </ScrollView>
+
+      {/* Edit Name Modal */}
+      <Modal visible={editModalVisible} transparent animationType="slide" onRequestClose={() => setEditModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: wp('6%'), borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', marginBottom: hp('2%') }}>Edit Name</Text>
+            <TextInput
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Your name"
+              placeholderTextColor="#555"
+              style={{
+                backgroundColor: isDark ? '#1A1A1A' : '#F0F0F0',
+                color: colors.text,
+                borderRadius: 12,
+                padding: hp('1.8%'),
+                fontSize: 16,
+                borderWidth: 1,
+                borderColor: colors.border,
+                marginBottom: hp('2.5%'),
+              }}
+            />
+            <TouchableOpacity
+              onPress={handleSaveName}
+              activeOpacity={0.8}
+              style={{ backgroundColor: THEME_ACCENT, borderRadius: 12, padding: hp('1.8%'), alignItems: 'center', marginBottom: hp('1.5%') }}
+            >
+              <Text style={{ color: '#000', fontWeight: '900', fontSize: 15, letterSpacing: 1 }}>SAVE</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setEditModalVisible(false)} activeOpacity={0.7} style={{ alignItems: 'center', padding: hp('1%') }}>
+              <Text style={{ color: '#555', fontWeight: '600' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -235,7 +306,7 @@ const styles = StyleSheet.create({
     height: 100,
     backgroundColor: 'rgba(204, 249, 0, 0.04)',
     borderRadius: 50,
-    filter: 'blur(30px)',
+    // filter: 'blur(30px)', // Not valid RN syntax
   },
   avatarGradientBorder: {
     width: hp('9%'),

@@ -5,7 +5,7 @@ module.exports = {
     
     "./src/**/*.{js,jsx}"
   ],
-  darkMode: "class",
+  darkMode: "media",
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
@@ -16,6 +16,5 @@ module.exports = {
       },
     },
   },
-  darkMode: "class",
   plugins: [],
 }
