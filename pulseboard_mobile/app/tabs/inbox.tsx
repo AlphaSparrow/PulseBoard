@@ -13,13 +13,14 @@ import { useTheme } from '../../src/context/ThemeContext';
 const ACCENT = '#CCF900';
 
 const CATEGORY_META: Record<string, { label: string; icon: string }> = {
-    clubs:            { label: 'Clubs',           icon: '🎯' },
-    interviews:       { label: 'Interviews',       icon: '💼' },
-    mess:             { label: 'Mess',             icon: '🍽️' },
-    google_classroom: { label: 'Classroom',        icon: '📚' },
-    lost_found:       { label: 'Lost & Found',     icon: '🔍' },
-    academic:         { label: 'Academic',         icon: '🎓' },
-    general:          { label: 'General',          icon: '📌' },
+    personal:         { label: 'Personal',         icon: '👤' },
+    clubs:            { label: 'Clubs',             icon: '🎯' },
+    interviews:       { label: 'Interviews',        icon: '💼' },
+    mess:             { label: 'Mess',              icon: '🍽️' },
+    google_classroom: { label: 'Classroom',         icon: '📚' },
+    lost_found:       { label: 'Lost & Found',      icon: '🔍' },
+    academic:         { label: 'Academic',          icon: '🎓' },
+    general:          { label: 'General',           icon: '📌' },
 };
 
 interface PersonalEvent {
@@ -39,6 +40,7 @@ interface PersonalEvent {
 
 const FILTERS = [
     { label: 'ALL', value: 'all' },
+    { label: 'PERSONAL', value: 'personal' },
     { label: 'CLUBS', value: 'clubs' },
     { label: 'INTERVIEWS', value: 'interviews' },
     { label: 'MESS', value: 'mess' },
@@ -70,7 +72,7 @@ export default function InboxScreen() {
     const [newDate, setNewDate] = useState('');
     const [newTimeDisplay, setNewTimeDisplay] = useState('');
     const [newLocation, setNewLocation] = useState('');
-    const [newCategory, setNewCategory] = useState('general');
+    const [newCategory, setNewCategory] = useState('personal');
     const [creating, setCreating] = useState(false);
 
     const colors = {
@@ -160,7 +162,7 @@ export default function InboxScreen() {
             setEvents(prev => [res.data.event, ...prev]);
             setShowCreateModal(false);
             setNewTitle(''); setNewDescription(''); setNewDate('');
-            setNewTimeDisplay(''); setNewLocation(''); setNewCategory('general');
+            setNewTimeDisplay(''); setNewLocation(''); setNewCategory('personal');
         } catch (err: any) {
             Alert.alert('Error', err.response?.data?.message || 'Failed to create event.');
         } finally {

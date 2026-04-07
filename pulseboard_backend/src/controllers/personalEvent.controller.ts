@@ -4,7 +4,7 @@ import PersonalEvent from '../models/PersonalEvent.model';
 import ProcessedEmail from '../models/ProcessedEmail.model';
 import User from '../models/User.model';
 
-const VALID_CATEGORIES = ['clubs', 'interviews', 'mess', 'google_classroom', 'lost_found', 'academic', 'general'];
+const VALID_CATEGORIES = ['clubs', 'interviews', 'mess', 'google_classroom', 'lost_found', 'academic', 'general', 'personal'];
 
 export const getPersonalEvents = async (req: Request, res: Response) => {
     try {
