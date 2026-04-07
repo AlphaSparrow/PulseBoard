@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, FlatList, TouchableOpacity, StatusBar,
     ActivityIndicator, RefreshControl, Modal, ScrollView, Alert,
-    TextInput, Switch,
+    TextInput, Switch, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Zap, MapPin, Clock, RefreshCw, Inbox, X, Mail, Calendar, Trash2, Plus, SlidersHorizontal } from 'lucide-react-native';
+import { Zap, MapPin, Clock, RefreshCw, Inbox, X, Mail, Calendar, Trash2, Plus, SlidersHorizontal, ChevronDown } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import api from '../../src/api/client';
 import { useTheme } from '../../src/context/ThemeContext';
@@ -69,11 +70,13 @@ export default function InboxScreen() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [newDescription, setNewDescription] = useState('');
-    const [newDate, setNewDate] = useState('');
     const [newTimeDisplay, setNewTimeDisplay] = useState('');
     const [newLocation, setNewLocation] = useState('');
     const [newCategory, setNewCategory] = useState('personal');
     const [creating, setCreating] = useState(false);
+    const [pickedDate, setPickedDate] = useState<Date>(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
 
     const colors = {
         bg: isDark ? '#050505' : '#FFFFFF',
@@ -145,24 +148,27 @@ export default function InboxScreen() {
     };
 
     const handleCreateEvent = async () => {
-        if (!newTitle.trim() || !newDate.trim() || !newTimeDisplay.trim()) {
-            Alert.alert('Missing fields', 'Title, date (YYYY-MM-DD) and time are required.');
+        if (!newTitle.trim()) {
+            Alert.alert('Missing fields', 'Title is required.');
             return;
         }
         setCreating(true);
         try {
+            // Format time display from pickedDate if user didn't type one
+            const autoTime = pickedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const res = await api.post('/personal-events', {
                 title: newTitle.trim(),
                 description: newDescription.trim(),
-                date: newDate.trim(),
-                timeDisplay: newTimeDisplay.trim(),
+                date: pickedDate.toISOString(),
+                timeDisplay: newTimeDisplay.trim() || autoTime,
                 location: newLocation.trim() || 'TBD',
                 category: newCategory,
             });
             setEvents(prev => [res.data.event, ...prev]);
             setShowCreateModal(false);
-            setNewTitle(''); setNewDescription(''); setNewDate('');
-            setNewTimeDisplay(''); setNewLocation(''); setNewCategory('personal');
+            setNewTitle(''); setNewDescription(''); setNewTimeDisplay('');
+            setNewLocation(''); setNewCategory('personal');
+            setPickedDate(new Date());
         } catch (err: any) {
             Alert.alert('Error', err.response?.data?.message || 'Failed to create event.');
         } finally {
@@ -442,104 +448,128 @@ export default function InboxScreen() {
                 transparent
                 onRequestClose={() => setSelectedEvent(null)}
             >
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' }}>
                     <View style={{
-                        backgroundColor: colors.sheet,
-                        borderTopLeftRadius: 24,
-                        borderTopRightRadius: 24,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        maxHeight: hp('85%'),
+                        backgroundColor: isDark ? '#0A0A0A' : '#F8F8F8',
+                        borderTopLeftRadius: 28,
+                        borderTopRightRadius: 28,
+                        maxHeight: hp('90%'),
+                        overflow: 'hidden',
                     }}>
-                        {selectedEvent && (
-                            <>
-                                <View style={{ height: 4, backgroundColor: selectedEvent.color || ACCENT, borderTopLeftRadius: 24, borderTopRightRadius: 24 }} />
+                        {selectedEvent && (() => {
+                            const cardColor = selectedEvent.color || ACCENT;
+                            const catMeta = CATEGORY_META[selectedEvent.category || 'general'];
+                            return (
+                                <>
+                                    {/* Hero Banner */}
+                                    <View style={{
+                                        height: hp('18%'),
+                                        backgroundColor: cardColor + '22',
+                                        borderTopLeftRadius: 28,
+                                        borderTopRightRadius: 28,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        position: 'relative',
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: cardColor + '44',
+                                    }}>
+                                        {/* Decorative blobs */}
+                                        <View style={{ position: 'absolute', top: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: cardColor + '18' }} />
+                                        <View style={{ position: 'absolute', bottom: -30, right: -10, width: 130, height: 130, borderRadius: 65, backgroundColor: cardColor + '12' }} />
 
-                                <ScrollView contentContainerStyle={{ padding: wp('6%') }} showsVerticalScrollIndicator={false}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: hp('1.5%') }}>
-                                        <TouchableOpacity
-                                            onPress={() => handleDelete(selectedEvent._id)}
-                                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}
-                                        >
-                                            <Trash2 size={hp('1.8%')} color="#EF4444" />
-                                            <Text style={{ color: '#EF4444', fontSize: hp('1.4%'), fontWeight: '700' }}>Delete</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            onPress={() => setSelectedEvent(null)}
-                                            style={{ width: wp('8%'), height: wp('8%'), backgroundColor: isDark ? '#1A1A1A' : '#F5F5F7', borderRadius: 999, alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            <X color={isDark ? "#666" : "#AAA"} size={hp('2%')} />
-                                        </TouchableOpacity>
-                                    </View>
+                                        {/* Close & Delete row */}
+                                        <View style={{ position: 'absolute', top: hp('1.5%'), left: wp('4%'), right: wp('4%'), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <TouchableOpacity
+                                                onPress={() => setSelectedEvent(null)}
+                                                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                <X color="#fff" size={15} />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                onPress={() => handleDelete(selectedEvent._id)}
+                                                style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(239,68,68,0.25)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(239,68,68,0.5)' }}
+                                            >
+                                                <Trash2 size={13} color="#FF6B6B" />
+                                                <Text style={{ color: '#FF6B6B', fontSize: 12, fontWeight: '800' }}>DELETE</Text>
+                                            </TouchableOpacity>
+                                        </View>
 
-                                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: wp('3%'), marginBottom: hp('2%') }}>
-                                        <Text style={{ fontSize: hp('5%') }}>{selectedEvent.icon}</Text>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={{ color: colors.text, fontWeight: '900', fontSize: hp('2.5%'), lineHeight: hp('3.2%') }}>
-                                                {selectedEvent.title}
-                                            </Text>
+                                        {/* Big emoji */}
+                                        <Text style={{ fontSize: hp('6%'), marginBottom: 6 }}>{selectedEvent.icon}</Text>
+
+                                        {/* Badges row */}
+                                        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                                            {catMeta && (
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 20 }}>
+                                                    <Text style={{ fontSize: 11 }}>{catMeta.icon}</Text>
+                                                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>{catMeta.label.toUpperCase()}</Text>
+                                                </View>
+                                            )}
                                             {selectedEvent.badge === 'LIVE' && (
-                                                <View style={{ backgroundColor: 'rgba(239,68,68,0.15)', alignSelf: 'flex-start', paddingHorizontal: wp('2.5%'), paddingVertical: 4, borderRadius: 6, marginTop: 6, borderWidth: 1, borderColor: 'rgba(239,68,68,0.4)' }}>
-                                                    <Text style={{ color: '#EF4444', fontSize: hp('1.3%'), fontWeight: '900', letterSpacing: 1 }}>● LIVE NOW</Text>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(239,68,68,0.4)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(239,68,68,0.7)' }}>
+                                                    <Text style={{ color: '#FF6B6B', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 }}>● LIVE NOW</Text>
                                                 </View>
                                             )}
                                         </View>
                                     </View>
 
-                                    {selectedEvent.description ? (
-                                        <Text style={{ color: isDark ? '#999' : '#666', fontSize: hp('1.7%'), lineHeight: hp('2.6%'), marginBottom: hp('2.5%') }}>
-                                            {selectedEvent.description}
+                                    <ScrollView contentContainerStyle={{ padding: wp('5%'), paddingTop: hp('2%') }} showsVerticalScrollIndicator={false}>
+
+                                        {/* Title */}
+                                        <Text style={{ color: colors.text, fontWeight: '900', fontSize: hp('2.6%'), lineHeight: hp('3.5%'), marginBottom: hp('1.5%') }}>
+                                            {selectedEvent.title}
                                         </Text>
-                                    ) : null}
 
-                                    <View style={{ height: 1, backgroundColor: colors.border, marginBottom: hp('2.5%') }} />
-
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp('3%'), marginBottom: hp('2%') }}>
-                                        <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: isDark ? '#161616' : '#F5F5F7', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Calendar size={hp('2%')} color={ACCENT} />
-                                        </View>
-                                        <View>
-                                            <Text style={{ color: colors.subtext, fontSize: hp('1.2%'), marginBottom: 2 }}>DATE & TIME</Text>
-                                            <Text style={{ color: colors.text, fontWeight: '700', fontSize: hp('1.8%') }}>
-                                                {new Date(selectedEvent.date).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+                                        {/* Description */}
+                                        {selectedEvent.description ? (
+                                            <Text style={{ color: isDark ? '#AAA' : '#555', fontSize: hp('1.7%'), lineHeight: hp('2.7%'), marginBottom: hp('2.5%') }}>
+                                                {selectedEvent.description}
                                             </Text>
-                                            <Text style={{ color: ACCENT, fontSize: hp('1.5%'), marginTop: 2 }}>
-                                                {selectedEvent.timeDisplay}
+                                        ) : null}
+
+                                        {/* Info chips row */}
+                                        <View style={{ flexDirection: 'row', gap: wp('2.5%'), marginBottom: hp('2.5%'), flexWrap: 'wrap' }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: isDark ? '#141414' : '#EFEFEF', borderRadius: 14, borderWidth: 1, borderColor: isDark ? '#222' : '#E0E0E0' }}>
+                                                <Calendar size={13} color={cardColor} />
+                                                <Text style={{ color: colors.text, fontWeight: '700', fontSize: hp('1.45%') }}>
+                                                    {new Date(selectedEvent.date).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                </Text>
+                                            </View>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: isDark ? '#141414' : '#EFEFEF', borderRadius: 14, borderWidth: 1, borderColor: isDark ? '#222' : '#E0E0E0' }}>
+                                                <Clock size={13} color={cardColor} />
+                                                <Text style={{ color: colors.text, fontWeight: '700', fontSize: hp('1.45%') }}>
+                                                    {selectedEvent.timeDisplay}
+                                                </Text>
+                                            </View>
+                                            {selectedEvent.location !== 'TBD' && (
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: isDark ? '#141414' : '#EFEFEF', borderRadius: 14, borderWidth: 1, borderColor: isDark ? '#222' : '#E0E0E0' }}>
+                                                    <MapPin size={13} color={cardColor} />
+                                                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: hp('1.45%') }}>
+                                                        {selectedEvent.location}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
+
+                                        {/* Source card */}
+                                        <View style={{ backgroundColor: isDark ? '#111' : '#F0F0F0', borderRadius: 16, padding: wp('4%'), borderWidth: 1, borderColor: isDark ? '#1E1E1E' : '#E5E5E5' }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                                <Mail size={13} color={isDark ? '#555' : '#999'} />
+                                                <Text style={{ color: isDark ? '#555' : '#999', fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>SOURCE EMAIL</Text>
+                                            </View>
+                                            <Text style={{ color: isDark ? '#CCC' : '#333', fontWeight: '700', fontSize: hp('1.6%'), marginBottom: 4 }}>
+                                                {selectedEvent.sourceFrom || '—'}
                                             </Text>
-                                        </View>
-                                    </View>
-
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp('3%'), marginBottom: hp('2%') }}>
-                                        <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: isDark ? '#161616' : '#F5F5F7', alignItems: 'center', justifyContent: 'center' }}>
-                                            <MapPin size={hp('2%')} color={ACCENT} />
-                                        </View>
-                                        <View>
-                                            <Text style={{ color: colors.subtext, fontSize: hp('1.2%'), marginBottom: 2 }}>LOCATION</Text>
-                                            <Text style={{ color: selectedEvent.location !== 'TBD' ? colors.text : (isDark ? '#444' : '#CCC'), fontWeight: '600', fontSize: hp('1.8%') }}>
-                                                {selectedEvent.location}
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    <View style={{ height: 1, backgroundColor: colors.border, marginBottom: hp('2.5%') }} />
-
-                                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: wp('3%') }}>
-                                        <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: isDark ? '#161616' : '#F5F5F7', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Mail size={hp('2%')} color={colors.subtext} />
-                                        </View>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={{ color: colors.subtext, fontSize: hp('1.2%'), marginBottom: 2 }}>FROM</Text>
-                                            <Text style={{ color: isDark ? '#888' : '#555', fontSize: hp('1.6%') }}>{selectedEvent.sourceFrom || '—'}</Text>
-                                            <Text style={{ color: isDark ? '#444' : '#888', fontSize: hp('1.4%'), marginTop: 4 }} numberOfLines={3}>
+                                            <Text style={{ color: isDark ? '#555' : '#888', fontSize: hp('1.4%'), lineHeight: hp('2.1%') }} numberOfLines={3}>
                                                 {selectedEvent.sourceSubject}
                                             </Text>
                                         </View>
-                                    </View>
 
-                                    <View style={{ height: hp('3%') }} />
-                                </ScrollView>
-                            </>
-                        )}
+                                        <View style={{ height: hp('3%') }} />
+                                    </ScrollView>
+                                </>
+                            );
+                        })()}
                     </View>
                 </View>
             </Modal>
@@ -639,34 +669,116 @@ export default function InboxScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            {[
-                                { label: 'Title *', value: newTitle, setter: setNewTitle, placeholder: 'e.g. Placement Talk by Google' },
-                                { label: 'Description', value: newDescription, setter: setNewDescription, placeholder: 'Optional details...' },
-                                { label: 'Date * (YYYY-MM-DD)', value: newDate, setter: setNewDate, placeholder: '2025-08-20' },
-                                { label: 'Time *', value: newTimeDisplay, setter: setNewTimeDisplay, placeholder: 'e.g. 5:00 PM - 7:00 PM' },
-                                { label: 'Location', value: newLocation, setter: setNewLocation, placeholder: 'e.g. Auditorium (leave blank for TBD)' },
-                            ].map(field => (
-                                <View key={field.label} style={{ marginBottom: hp('1.8%') }}>
-                                    <Text style={{ color: colors.subtext, fontSize: 12, fontWeight: '700', marginBottom: 6, letterSpacing: 0.5 }}>
-                                        {field.label.toUpperCase()}
-                                    </Text>
-                                    <TextInput
-                                        value={field.value}
-                                        onChangeText={field.setter}
-                                        placeholder={field.placeholder}
-                                        placeholderTextColor={isDark ? '#444' : '#BBB'}
-                                        style={{
-                                            backgroundColor: colors.input,
-                                            color: colors.text,
-                                            borderRadius: 12,
-                                            padding: hp('1.6%'),
-                                            fontSize: 15,
-                                            borderWidth: 1,
-                                            borderColor: colors.border,
+                            {/* Title */}
+                            <View style={{ marginBottom: hp('1.8%') }}>
+                                <Text style={{ color: colors.subtext, fontSize: 12, fontWeight: '700', marginBottom: 6, letterSpacing: 0.5 }}>TITLE *</Text>
+                                <TextInput
+                                    value={newTitle}
+                                    onChangeText={setNewTitle}
+                                    placeholder="e.g. Placement Talk by Google"
+                                    placeholderTextColor={isDark ? '#444' : '#BBB'}
+                                    style={{ backgroundColor: colors.input, color: colors.text, borderRadius: 12, padding: hp('1.6%'), fontSize: 15, borderWidth: 1, borderColor: colors.border }}
+                                />
+                            </View>
+
+                            {/* Description */}
+                            <View style={{ marginBottom: hp('1.8%') }}>
+                                <Text style={{ color: colors.subtext, fontSize: 12, fontWeight: '700', marginBottom: 6, letterSpacing: 0.5 }}>DESCRIPTION</Text>
+                                <TextInput
+                                    value={newDescription}
+                                    onChangeText={setNewDescription}
+                                    placeholder="Optional details..."
+                                    placeholderTextColor={isDark ? '#444' : '#BBB'}
+                                    multiline
+                                    numberOfLines={2}
+                                    style={{ backgroundColor: colors.input, color: colors.text, borderRadius: 12, padding: hp('1.6%'), fontSize: 15, borderWidth: 1, borderColor: colors.border }}
+                                />
+                            </View>
+
+                            {/* Date picker */}
+                            <View style={{ marginBottom: hp('1.8%') }}>
+                                <Text style={{ color: colors.subtext, fontSize: 12, fontWeight: '700', marginBottom: 6, letterSpacing: 0.5 }}>DATE *</Text>
+                                <TouchableOpacity
+                                    onPress={() => setShowDatePicker(true)}
+                                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.input, borderRadius: 12, padding: hp('1.6%'), borderWidth: 1, borderColor: colors.border }}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        <Calendar size={16} color={ACCENT} />
+                                        <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
+                                            {pickedDate.toLocaleDateString([], { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
+                                        </Text>
+                                    </View>
+                                    <ChevronDown size={16} color={colors.subtext} />
+                                </TouchableOpacity>
+                                {showDatePicker && (
+                                    <DateTimePicker
+                                        value={pickedDate}
+                                        mode="date"
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        minimumDate={new Date()}
+                                        onChange={(_, selected) => {
+                                            setShowDatePicker(false);
+                                            if (selected) setPickedDate(prev => {
+                                                const d = new Date(selected);
+                                                d.setHours(prev.getHours(), prev.getMinutes());
+                                                return d;
+                                            });
                                         }}
                                     />
-                                </View>
-                            ))}
+                                )}
+                            </View>
+
+                            {/* Time picker */}
+                            <View style={{ marginBottom: hp('1.8%') }}>
+                                <Text style={{ color: colors.subtext, fontSize: 12, fontWeight: '700', marginBottom: 6, letterSpacing: 0.5 }}>TIME *</Text>
+                                <TouchableOpacity
+                                    onPress={() => setShowTimePicker(true)}
+                                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.input, borderRadius: 12, padding: hp('1.6%'), borderWidth: 1, borderColor: colors.border }}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        <Clock size={16} color={ACCENT} />
+                                        <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
+                                            {pickedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </Text>
+                                    </View>
+                                    <ChevronDown size={16} color={colors.subtext} />
+                                </TouchableOpacity>
+                                {showTimePicker && (
+                                    <DateTimePicker
+                                        value={pickedDate}
+                                        mode="time"
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        onChange={(_, selected) => {
+                                            setShowTimePicker(false);
+                                            if (selected) setPickedDate(prev => {
+                                                const d = new Date(prev);
+                                                d.setHours(selected.getHours(), selected.getMinutes());
+                                                return d;
+                                            });
+                                        }}
+                                    />
+                                )}
+                                {/* Optional custom display label */}
+                                <TextInput
+                                    value={newTimeDisplay}
+                                    onChangeText={setNewTimeDisplay}
+                                    placeholder={`e.g. ${pickedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – 7:00 PM (optional override)`}
+                                    placeholderTextColor={isDark ? '#333' : '#CCC'}
+                                    style={{ backgroundColor: 'transparent', color: isDark ? '#666' : '#AAA', fontSize: 12, marginTop: 6, paddingHorizontal: 4 }}
+                                />
+                            </View>
+
+                            {/* Location */}
+                            <View style={{ marginBottom: hp('1.8%') }}>
+                                <Text style={{ color: colors.subtext, fontSize: 12, fontWeight: '700', marginBottom: 6, letterSpacing: 0.5 }}>LOCATION</Text>
+                                <TextInput
+                                    value={newLocation}
+                                    onChangeText={setNewLocation}
+                                    placeholder="e.g. Auditorium (leave blank for TBD)"
+                                    placeholderTextColor={isDark ? '#444' : '#BBB'}
+                                    style={{ backgroundColor: colors.input, color: colors.text, borderRadius: 12, padding: hp('1.6%'), fontSize: 15, borderWidth: 1, borderColor: colors.border }}
+                                />
+                            </View>
 
                             {/* Category picker */}
                             <View style={{ marginBottom: hp('2.5%') }}>

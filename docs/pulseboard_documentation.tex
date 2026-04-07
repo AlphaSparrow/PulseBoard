@@ -1132,9 +1132,22 @@ const loadData = async () => {
 
 \subsection{Smart Inbox Screen (\texttt{tabs/inbox.tsx})}
 
-\begin{lstlisting}[language=TypeScript, caption={Inbox Screen — Filter Logic}]
+\begin{lstlisting}[language=TypeScript, caption={Inbox Screen — Categories \& Filter Logic}]
+// 8 categories (personal is default for manually created events)
+const CATEGORY_META = {
+  personal:         { label: 'Personal',     icon: '👤' },
+  clubs:            { label: 'Clubs',         icon: '🎯' },
+  interviews:       { label: 'Interviews',    icon: '💼' },
+  mess:             { label: 'Mess',          icon: '🍽' },
+  google_classroom: { label: 'Classroom',     icon: '📚' },
+  lost_found:       { label: 'Lost & Found',  icon: '🔍' },
+  academic:         { label: 'Academic',      icon: '🎓' },
+  general:          { label: 'General',       icon: '📌' },
+};
+
 const FILTERS = [
   { label: 'ALL',        value: 'all' },
+  { label: 'PERSONAL',   value: 'personal' },   // <-- new
   { label: 'CLUBS',      value: 'clubs' },
   { label: 'INTERVIEWS', value: 'interviews' },
   { label: 'MESS',       value: 'mess' },
@@ -1144,18 +1157,29 @@ const FILTERS = [
   { label: 'GENERAL',    value: 'general' },
 ];
 
-// Filter events by active category chip
+// Muted categories are excluded server-side via $nin query;
+// filter chips for muted categories render at 40% opacity with a 🔕 suffix.
 const filteredEvents = filter === 'all'
   ? events
   : events.filter(e => e.category === filter);
-
-// Force re-scan: clear server-side cache + trigger fresh Gmail analysis
-const handleRescan = async () => {
-  await api.post('/personal-events/rescan');
-  // Re-analysis happens within 5 minutes on next watcher cycle
-  fetchEvents();
-};
 \end{lstlisting}
+
+\textbf{User-facing features:}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Category filter chips} — horizontal scroll row; muted categories shown dimmed with \texttt{🔕}
+  \item \textbf{Delete} — trash icon on each card; ownership enforced server-side with \texttt{findOneAndDelete(\{\_id, userId\})}
+  \item \textbf{Add Event FAB} — \texttt{+} button (bottom-right) opens a create modal; defaults category to \textit{Personal}; user can switch before saving
+  \item \textbf{Category Mute Sheet} — sliders icon in header opens a bottom sheet with a \texttt{Switch} per category; preferences persisted to \texttt{User.mutedCategories}
+  \item \textbf{Re-scan} — clears server cache and triggers fresh Gmail analysis within 5 minutes
+\end{itemize}
+
+\textbf{Event Detail Modal — Hero Design:}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Hero banner} — tinted with the event's accent color; decorative background blobs; large emoji centered; category badge and LIVE badge overlaid
+  \item \textbf{Action bar} — close (X) and Delete float inside the hero header
+  \item \textbf{Info chips} — date, time, and location rendered as individual pill chips (not a plain list), each with a color-matched icon
+  \item \textbf{Source card} — inset card showing the originating email sender and subject
+\end{itemize}
 
 \subsection{Clubs Screen (\texttt{tabs/clubs.tsx})}
 
