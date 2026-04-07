@@ -92,7 +92,7 @@ export default function SettingsScreen() {
           <ChevronLeft color={colors.text} size={20} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>SETTINGS</Text>
-        <View style={{ width: 40 }} /> {/* Spacer for centering */}
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView 

@@ -40,6 +40,29 @@ export const getMyProfile = async (req: Request, res: Response) => {
   }
 };
 
+export const updateMyProfile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.userId;
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { name: name.trim() },
+      { new: true }
+    );
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    return res.status(200).json({ name: user.name });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server Error' });
+  }
+};
+
 export const savePushToken = async (req: any, res: any) => {
   try {
     const userId = req.user?.userId;

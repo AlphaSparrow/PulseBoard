@@ -26,6 +26,9 @@ export default function RootLayout() {
          <Stack.Screen name="auth" />
          <Stack.Screen name="tabs" />
          <Stack.Screen name="calendar" />
+         <Stack.Screen name="settings" />
+         <Stack.Screen name="sos" />
+         <Stack.Screen name="heatmap" />
        </Stack>
     </ThemeProvider>
   );

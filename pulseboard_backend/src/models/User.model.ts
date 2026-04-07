@@ -18,6 +18,7 @@ export interface IUser extends Document {
   googleRefreshToken?: string;
   resetOtp?: string;
   resetOtpExpires?: Date;
+  mutedCategories: string[];
 }
 
 const UserSchema: Schema<IUser> = new Schema(
@@ -96,6 +97,11 @@ const UserSchema: Schema<IUser> = new Schema(
 
     googleRefreshToken: {
       type: String,
+    },
+
+    mutedCategories: {
+      type: [String],
+      default: [],
     },
   },
   { timestamps: true }
