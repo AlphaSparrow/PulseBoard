@@ -1,0 +1,1622 @@
+% ============================================================
+%  PulseBoard – Full Technical Documentation
+%  Compile with: pdflatex -> biber -> pdflatex x2
+%  Requires packages listed in the preamble.
+% ============================================================
+
+\documentclass[12pt,a4paper]{report}
+
+% ── Fonts & Encoding ────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+
+% ── Page Layout ─────────────────────────────────────────────
+\usepackage[
+  top=2.5cm, bottom=2.5cm,
+  left=2.8cm, right=2.8cm,
+  headheight=15pt
+]{geometry}
+
+% ── Colour ──────────────────────────────────────────────────
+\usepackage[dvipsnames,svgnames,table]{xcolor}
+\definecolor{accent}{HTML}{CCF900}       % PulseBoard volt yellow
+\definecolor{darkbg}{HTML}{050505}
+\definecolor{codebg}{HTML}{1E1E2E}
+\definecolor{codefg}{HTML}{CDD6F4}
+\definecolor{keyword}{HTML}{89DCEB}
+\definecolor{string}{HTML}{A6E3A1}
+\definecolor{comment}{HTML}{6C7086}
+\definecolor{number}{HTML}{FAB387}
+\definecolor{type}{HTML}{89B4FA}
+\definecolor{func}{HTML}{CBA6F7}
+\definecolor{tablebg}{HTML}{F8FAFC}
+\definecolor{tableheadbg}{HTML}{1E293B}
+\definecolor{rowodd}{HTML}{F1F5F9}
+\definecolor{roweven}{HTML}{FFFFFF}
+
+% ── Graphics & Floats ───────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,backgrounds,shadows}
+
+% ── Tables ──────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{colortbl}
+
+% ── Code Listings (Prism-style) ─────────────────────────────
+\usepackage{listings}
+\usepackage{lstautogobble}
+
+\lstdefinestyle{prism}{
+  backgroundcolor  = \color{codebg},
+  basicstyle       = \ttfamily\footnotesize\color{codefg},
+  keywordstyle     = \color{keyword}\bfseries,
+  stringstyle      = \color{string},
+  commentstyle     = \color{comment}\itshape,
+  numberstyle      = \tiny\color{comment},
+  identifierstyle  = \color{codefg},
+  emphstyle        = \color{type}\bfseries,
+  emphstyle        = [2]\color{func},
+  numbers          = left,
+  numbersep        = 10pt,
+  stepnumber       = 1,
+  showstringspaces = false,
+  breaklines       = true,
+  breakatwhitespace= true,
+  tabsize          = 2,
+  frame            = single,
+  framerule        = 0pt,
+  rulecolor        = \color{codebg},
+  xleftmargin      = 18pt,
+  xrightmargin     = 4pt,
+  framexleftmargin = 18pt,
+  autogobble       = true,
+  columns          = fullflexible,
+  keepspaces       = true,
+}
+
+% TypeScript language definition
+\lstdefinelanguage{TypeScript}{
+  keywords  = {
+    const, let, var, function, return, if, else, for, while, do,
+    switch, case, break, continue, new, delete, typeof, instanceof,
+    in, of, import, export, default, from, class, extends, implements,
+    interface, type, enum, namespace, declare, abstract, async, await,
+    try, catch, finally, throw, void, null, undefined, true, false,
+    this, super, static, readonly, public, private, protected,
+    module, require, Promise, any
+  },
+  sensitive  = true,
+  morecomment= [l]{//},
+  morecomment= [s]{/*}{*/},
+  morestring = [b]",
+  morestring = [b]',
+  morestring = [b]`,
+}
+
+% JSON language definition
+\lstdefinelanguage{JSON}{
+  basicstyle       = \ttfamily\footnotesize\color{codefg},
+  keywords         = {true, false, null},
+  keywordstyle     = \color{number}\bfseries,
+  morestring       = [b]",
+  stringstyle      = \color{string},
+  sensitive        = false,
+  morecomment      = [l]{//},
+  commentstyle     = \color{comment},
+}
+
+\lstset{style=prism}
+
+% ── Hyperlinks ──────────────────────────────────────────────
+\usepackage[
+  colorlinks = true,
+  linkcolor  = accent!70!black,
+  urlcolor   = type,
+  citecolor  = accent!70!black,
+  pdftitle   = {PulseBoard Technical Documentation},
+  pdfauthor  = {PulseBoard Team}
+]{hyperref}
+
+% ── Headers & Footers ───────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{gray}{\textbf{PulseBoard} — Technical Documentation}}
+\fancyhead[R]{\small\textcolor{gray}{\leftmark}}
+\fancyfoot[C]{\small\textcolor{gray}{\thepage}}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ── Typography & Misc ───────────────────────────────────────
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{mdframed}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable,listingsutf8}
+\usepackage{fontawesome5}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{setspace}
+\usepackage{soul}
+
+% ── Custom Environments ─────────────────────────────────────
+\newenvironment{infobox}[1]{%
+  \begin{tcolorbox}[
+    enhanced, breakable,
+    colback  = type!8,
+    colframe = type!60,
+    fonttitle= \bfseries\small,
+    title    = {#1},
+    left=6pt, right=6pt, top=4pt, bottom=4pt
+  ]
+}{%
+  \end{tcolorbox}
+}
+
+\newenvironment{warnbox}[1]{%
+  \begin{tcolorbox}[
+    enhanced, breakable,
+    colback  = number!8,
+    colframe = number!60,
+    fonttitle= \bfseries\small,
+    title    = {#1},
+    left=6pt, right=6pt, top=4pt, bottom=4pt
+  ]
+}{%
+  \end{tcolorbox}
+}
+
+% ── Custom Commands ─────────────────────────────────────────
+\newcommand{\code}[1]{\texttt{\small\color{type}#1}}
+\newcommand{\endpoint}[2]{\texttt{\textbf{\color{keyword}#1}\color{codefg!80!white}\ #2}}
+\newcommand{\method}[1]{\colorbox{type!20}{\texttt{\small\bfseries\color{type}#1}}}
+\newcommand{\badge}[2]{\colorbox{#1!20}{\texttt{\small\color{#1!80!black}#2}}}
+
+% ── Section Styling ─────────────────────────────────────────
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{darkbg}}
+  {\textcolor{accent}{\chaptertitlename\ \thechapter}}
+  {20pt}
+  {\Huge}
+  [\vspace{-5pt}\textcolor{accent}{\rule{\textwidth}{2pt}}]
+
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{darkbg}}
+  {\textcolor{accent}{\thesection}}
+  {1em}{}
+
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{darkbg!80}}
+  {\textcolor{type}{\thesubsection}}
+  {1em}{}
+
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{darkbg!60}}
+  {\textcolor{func}{\thesubsubsection}}
+  {1em}{}
+
+% ─────────────────────────────────────────────────────────────
+%  DOCUMENT
+% ─────────────────────────────────────────────────────────────
+\begin{document}
+
+% ── Cover Page ──────────────────────────────────────────────
+\begin{titlepage}
+\pagecolor{darkbg}
+\color{white}
+\centering
+\vspace*{2cm}
+
+\begin{tikzpicture}
+  \node[rectangle, fill=accent, minimum width=14cm, minimum height=1.4cm,
+        rounded corners=4pt] (banner) {};
+  \node[font=\Huge\bfseries\itshape, text=darkbg, skew=-0.2] at (banner)
+    {PULSEBOARD};
+\end{tikzpicture}
+
+\vspace{0.6cm}
+{\Large\bfseries\color{white!70} Technical Documentation}
+
+\vspace{0.3cm}
+{\large\color{white!50}\texttt{v1.0.0 — Production Release}}
+
+\vspace{2cm}
+\begin{tikzpicture}
+  \draw[color=accent!30, line width=0.5pt] (0,0) -- (10,0);
+\end{tikzpicture}
+
+\vspace{1.5cm}
+\begin{tabular}{rl}
+  \textcolor{accent}{\faServer}   & \textcolor{white!80}{Node.js + Express + TypeScript} \\[6pt]
+  \textcolor{accent}{\faDatabase} & \textcolor{white!80}{MongoDB + Mongoose ODM}          \\[6pt]
+  \textcolor{accent}{\faMobile}   & \textcolor{white!80}{React Native + Expo Router}      \\[6pt]
+  \textcolor{accent}{\faRobot}    & \textcolor{white!80}{Groq AI (Llama 3.1 8B)}          \\[6pt]
+  \textcolor{accent}{\faEnvelope} & \textcolor{white!80}{Gmail API + OAuth 2.0}            \\
+\end{tabular}
+
+\vspace{2cm}
+\begin{tikzpicture}
+  \draw[color=accent!30, line width=0.5pt] (0,0) -- (10,0);
+\end{tikzpicture}
+
+\vspace{1cm}
+{\color{white!50} Prepared by} \\[4pt]
+{\large\bfseries\color{white} PulseBoard Development Team} \\[4pt]
+{\color{accent}\texttt{IIT Jodhpur — 2026}}
+
+\vfill
+{\small\color{white!30}\texttt{SYS.READY · SECURE CONNECTION ESTABLISHED}}
+\end{titlepage}
+\pagecolor{white}
+\color{black}
+
+% ── Table of Contents ───────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ─────────────────────────────────────────────────────────────
+\chapter{Project Overview}
+% ─────────────────────────────────────────────────────────────
+
+\section{What is PulseBoard?}
+
+PulseBoard is a \textbf{smart campus intelligence platform} built for IIT Jodhpur students. It aggregates campus events from multiple sources — Gmail inboxes, club email channels, and direct club postings — and presents them in a unified, beautiful mobile interface.
+
+The system uses \textbf{AI-powered email parsing} to automatically convert unstructured email content into structured event cards, eliminating the need for manual event submission. Students connect their Google account once and the platform continuously monitors their inbox, extracting campus-relevant information while aggressively filtering spam.
+
+\begin{infobox}{Core Capabilities}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Smart Inbox} — Gmail-connected AI email parser using Groq LLM
+  \item \textbf{Club Feed} — Real-time event feed from followed clubs
+  \item \textbf{LHC Heatmap} — Lecture Hall Complex room availability grid
+  \item \textbf{Smart Calendar} — Time-aware event calendar with category filtering
+  \item \textbf{Push Reminders} — 1-hour pre-event push notifications
+  \item \textbf{SOS Protocol} — Emergency contacts with one-tap calling
+  \item \textbf{Club Admin Portal} — Clubs publish events directly from the app
+\end{itemize}
+\end{infobox}
+
+\section{Technology Stack}
+
+\begin{table}[H]
+\centering
+\rowcolors{2}{rowodd}{roweven}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X l}
+\rowcolor{tableheadbg}
+\color{white}Layer & \color{white}Technology & \color{white}Version \\
+\toprule
+Backend Runtime  & Node.js + TypeScript                    & 20 LTS / 5.9 \\
+Web Framework    & Express.js                              & 4.21 \\
+Database         & MongoDB + Mongoose ODM                  & Atlas / 9.1 \\
+Mobile Framework & React Native (Expo Managed)             & 0.81.5 / 54 \\
+Routing          & Expo Router (file-based)                & 6.0 \\
+AI Parsing       & Groq API — Llama 3.1 8B Instant         & Latest \\
+Email Access     & Gmail REST API + OAuth 2.0              & v1 \\
+File Storage     & Cloudinary CDN                          & 1.41 \\
+Email Delivery   & Nodemailer (SMTP) + SendGrid            & 8.0 / 8.1 \\
+Push Notifications & Expo Push Notification Service        & 0.32 \\
+Styling          & NativeWind (Tailwind CSS for RN)        & 4.2 \\
+Animations       & Moti + React Native Reanimated          & 0.30 / 4.1 \\
+\bottomrule
+\end{tabularx}
+\caption{Technology Stack Summary}
+\end{table}
+
+\section{Repository Structure}
+
+\begin{lstlisting}[language=bash, caption={Repository Directory Structure}]
+PulseBoard/
+├── pulseboard_backend/          # Node.js Express API server
+│   ├── src/
+│   │   ├── server.ts            # Application entry point
+│   │   ├── controllers/         # Request handlers (11 files)
+│   │   ├── routes/              # API route definitions (11 files)
+│   │   ├── models/              # MongoDB schemas (7 files)
+│   │   ├── services/            # Business logic layer (9 files)
+│   │   ├── jobs/                # Scheduled background tasks
+│   │   ├── middlewares/         # Express middleware
+│   │   └── utils/               # Shared utilities
+│   └── package.json
+│
+└── pulseboard_mobile/           # React Native Expo application
+    ├── app/                     # Expo Router navigation tree
+    │   ├── index.tsx            # Welcome / splash screen
+    │   ├── auth/                # Login, Register, OTP, Reset
+    │   ├── tabs/                # Main tab bar screens
+    │   ├── club_tabs/           # Club admin portal screens
+    │   ├── calendar.tsx         # Calendar view
+    │   ├── heatmap.tsx          # LHC room heatmap
+    │   ├── sos.tsx              # Emergency contacts
+    │   └── settings.tsx         # App settings
+    ├── src/
+    │   ├── api/                 # Axios API client layer
+    │   ├── services/            # Client-side services
+    │   ├── context/             # React context providers
+    │   └── components/          # Reusable UI components
+    └── package.json
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────
+\chapter{Backend Architecture}
+% ─────────────────────────────────────────────────────────────
+
+\section{Server Initialization}
+
+The backend is a \textbf{TypeScript Express server} that connects to MongoDB on startup and immediately launches three independent background services.
+
+\begin{lstlisting}[language=TypeScript, caption={server.ts — Startup Sequence}]
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import mongoose from 'mongoose';
+import { startGmailWatcher } from './services/gmailWatcher.service';
+import { startReminderScheduler } from './services/reminderScheduler.service';
+import { initCronJobs } from './jobs/cron';
+
+const app = express();
+
+// ── Middleware ───────────────────────────────────────────────
+app.use(morgan('dev'));
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ── Routes registered under /api ────────────────────────────
+app.use('/api/auth',            authRoutes);
+app.use('/api/users',           userRoutes);
+app.use('/api/clubs',           clubRoutes);
+app.use('/api/events',          eventRoutes);
+app.use('/api/personal-events', personalEventRoutes);
+app.use('/api/email',           emailRoutes);
+app.use('/api/calendar',        calendarRoutes);
+app.use('/api/lhc',             lhcRoutes);
+app.use('/api/categories',      categoryRoutes);
+app.use('/api/mails',           mailRoutes);
+
+// ── Database + Background Services ──────────────────────────
+mongoose.connect(process.env.MONGO_URI!).then(() => {
+  initCronJobs();                         // Daily cleanup at 00:00
+  startGmailWatcher(300_000);             // Poll Gmail every 5 min
+  startReminderScheduler(300_000);        // Check reminders every 5 min
+  app.listen(process.env.PORT || 5000);
+});
+\end{lstlisting}
+
+\section{API Endpoints Reference}
+
+\subsection{Authentication Routes \texttt{/api/auth}}
+
+\begin{longtable}{>{\ttfamily}l >{\ttfamily}l p{6cm} c}
+\rowcolor{tableheadbg}
+\color{white}\normalfont Method & \color{white}\normalfont Endpoint & \color{white}\normalfont Description & \color{white}\normalfont Auth \\
+\endfirsthead
+\rowcolor{tableheadbg}
+\color{white}\normalfont Method & \color{white}\normalfont Endpoint & \color{white}\normalfont Description & \color{white}\normalfont Auth \\
+\endhead
+\toprule
+\rowcolor{rowodd}  POST & /register            & Register with email \& password. Sends OTP.   & \faLock[regular] \\
+\rowcolor{roweven} POST & /verify-otp          & Verify email with 6-digit OTP.                & \faLock[regular] \\
+\rowcolor{rowodd}  POST & /resend-otp          & Resend verification OTP.                      & \faLock[regular] \\
+\rowcolor{roweven} POST & /login               & Email/password login. Returns JWT.            & \faLock[regular] \\
+\rowcolor{rowodd}  POST & /google/callback     & Google OAuth. Accepts id\_token or code.      & \faLock[regular] \\
+\rowcolor{roweven} POST & /forgot-password     & Request password reset OTP.                   & \faLock[regular] \\
+\rowcolor{rowodd}  POST & /verify-reset-otp    & Validate the reset OTP.                       & \faLock[regular] \\
+\rowcolor{roweven} POST & /reset-password      & Set new password after OTP verified.          & \faLock[regular] \\
+\bottomrule
+\end{longtable}
+
+\subsection{Club Routes \texttt{/api/clubs}}
+
+\begin{longtable}{>{\ttfamily}l >{\ttfamily}l p{6cm} c}
+\rowcolor{tableheadbg}
+\color{white}\normalfont Method & \color{white}\normalfont Endpoint & \color{white}\normalfont Description & \color{white}\normalfont Auth \\
+\endfirsthead
+\rowcolor{tableheadbg}
+\color{white}\normalfont Method & \color{white}\normalfont Endpoint & \color{white}\normalfont Description & \color{white}\normalfont Auth \\
+\endhead
+\toprule
+\rowcolor{rowodd}  POST  & /                  & Create new club.                              & \faKey \\
+\rowcolor{roweven} POST  & /:clubId/follow    & Toggle follow / unfollow.                     & \faKey \\
+\rowcolor{rowodd}  GET   & /                  & List all clubs.                               & \faLock[regular] \\
+\rowcolor{roweven} GET   & /:id               & Get single club by ID.                        & \faLock[regular] \\
+\rowcolor{rowodd}  PATCH & /:clubId/email     & Update club's inbound email address.          & \faLock[regular] \\
+\bottomrule
+\end{longtable}
+
+\subsection{Event Routes \texttt{/api/events}}
+
+\begin{longtable}{>{\ttfamily}l >{\ttfamily}l p{6cm} c}
+\rowcolor{tableheadbg}
+\color{white}\normalfont Method & \color{white}\normalfont Endpoint & \color{white}\normalfont Description & \color{white}\normalfont Auth \\
+\endfirsthead
+\rowcolor{tableheadbg}
+\color{white}\normalfont Method & \color{white}\normalfont Endpoint & \color{white}\normalfont Description & \color{white}\normalfont Auth \\
+\endhead
+\toprule
+\rowcolor{rowodd}  POST & /                  & Create event (multipart/form-data + image).   & \faLock[regular] \\
+\rowcolor{roweven} GET  & /feed              & Global event feed (LIVE + UPCOMING).          & \faLock[regular] \\
+\rowcolor{rowodd}  GET  & /club/:clubId      & Events for specific club.                     & \faLock[regular] \\
+\bottomrule
+\end{longtable}
+
+\subsection{Personal Events \texttt{/api/personal-events}}
+
+\begin{longtable}{>{\ttfamily}l >{\ttfamily}l p{6cm} c}
+\rowcolor{tableheadbg}
+\color{white}\normalfont Method & \color{white}\normalfont Endpoint & \color{white}\normalfont Description & \color{white}\normalfont Auth \\
+\endfirsthead
+\rowcolor{tableheadbg}
+\color{white}\normalfont Method & \color{white}\normalfont Endpoint & \color{white}\normalfont Description & \color{white}\normalfont Auth \\
+\endhead
+\toprule
+\rowcolor{rowodd}   GET    & /              & Fetch user's AI-parsed Gmail events (respects muted categories). Returns \texttt{\{events, mutedCategories\}}. & \faKey \\
+\rowcolor{roweven}  POST   & /              & Create a manual event. Body: \texttt{title, date, timeDisplay, location, description?, category?, icon?, color?}. & \faKey \\
+\rowcolor{rowodd}   DELETE & /:id           & Delete a personal event by ID (ownership-checked). & \faKey \\
+\rowcolor{roweven}  PATCH  & /preferences   & Update muted categories. Body: \texttt{\{mutedCategories: string[]\}}. & \faKey \\
+\rowcolor{rowodd}   POST   & /rescan        & Delete cache and force fresh Gmail scan.      & \faKey \\
+\bottomrule
+\end{longtable}
+
+\begin{infobox}{User Control Design}
+The \textbf{Smart Inbox} gives users full control over their event feed:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Delete} — any event (AI-parsed or manual) can be removed; \texttt{findOneAndDelete(\{\_id, userId\})} ensures users can only delete their own events.
+  \item \textbf{Create} — manual events are stored with \texttt{gmailMessageId: "manual\_<userId>\_<timestamp>"} to avoid collisions with Gmail-parsed entries.
+  \item \textbf{Mute} — per-category mute preferences are stored on the \texttt{User} document as \texttt{mutedCategories: string[]}. The GET endpoint excludes muted categories via a MongoDB \texttt{\$nin} query, so muted events are never sent to the client.
+\end{itemize}
+\end{infobox}
+
+\subsection{Other Routes}
+
+\begin{table}[H]
+\centering
+\rowcolors{2}{rowodd}{roweven}
+\begin{tabularx}{\textwidth}{>{\ttfamily}l >{\ttfamily}l X}
+\rowcolor{tableheadbg}
+\color{white}\normalfont Method & \color{white}\normalfont Route & \color{white}\normalfont Description \\
+\toprule
+POST & /api/email/inbound          & Mailgun webhook — receives club emails          \\
+GET  & /api/calendar/events        & Calendar events (filterable by category \& date) \\
+GET  & /api/lhc/heatmap            & LHC room bookings for a given date              \\
+GET   & /api/users/me               & Authenticated user profile                      \\
+PATCH & /api/users/me               & Update display name. Body: \texttt{\{name\}}    \\
+POST  & /api/users/save-push-token  & Register Expo push token                        \\
+GET  & /api/categories             & All event categories                            \\
+\bottomrule
+\end{tabularx}
+\caption{Remaining API Endpoints}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────
+\chapter{Data Models}
+% ─────────────────────────────────────────────────────────────
+
+\section{User Model}
+
+\begin{lstlisting}[language=TypeScript, caption={User.model.ts — Schema Definition}]
+interface IUser {
+  name:               string;       // Required
+  email:              string;       // Required, unique, lowercase, trimmed
+  provider:           'local' | 'google';   // Required
+  googleId?:          string;       // Unique if provider='google'
+  password?:          string;       // bcrypt hashed, required if local
+  isVerified:         boolean;      // Default: false
+  otp?:               string;       // 6-digit email verification OTP
+  otpExpiry?:         Date;         // 10-minute window
+  resetOtp?:          string;       // bcrypt-hashed password reset OTP
+  resetOtpExpires?:   Date;         // 15-minute window
+  expoPushToken?:     string;       // For push notifications
+  year?:              number;       // Academic year
+  branch?:            string;       // Engineering branch
+  following:          number[];     // Array of followed clubIds (default [])
+  avatar?:            string;       // Custom URL or Gravatar
+  googleAccessToken?: string;       // Short-lived (1h), auto-refreshed
+  googleRefreshToken?:string;       // Long-lived, used to renew access token
+  mutedCategories:    string[];     // Categories hidden from Smart Inbox (default [])
+}
+\end{lstlisting}
+
+\begin{infobox}{Security Notes}
+Passwords are hashed with \code{bcryptjs} at 10 salt rounds before storage. \code{googleAccessToken} and \code{googleRefreshToken} are stored in plaintext — in a production environment these should be encrypted at rest using AES-256.
+\end{infobox}
+
+\section{Club Model}
+
+\begin{lstlisting}[language=TypeScript, caption={Club.model.ts — Schema Definition}]
+interface IClub {
+  clubId:      number;   // Required, unique, indexed
+  name:        string;   // Required, unique
+  description: string;   // Required
+  category:    'Technical' | 'Cultural' | 'Literary' | 'Other';
+  followers:   number;   // Default 0, incremented on follow
+  image?:      string;   // Cloudinary image URL
+  email?:      string;   // Linked email for Mailgun inbound webhook
+}
+\end{lstlisting}
+
+\section{Event Model (Global Club Feed)}
+
+\begin{lstlisting}[language=TypeScript, caption={Event.model.ts — Schema Definition}]
+interface IEvent {
+  imageUrl?:    string;             // Cloudinary CDN URL
+  clubId:       number;             // Required, indexed (NOT unique)
+  title:        string;             // Required
+  description?: string;
+  icon:         string;             // Emoji (default '📅')
+  badge:        'LIVE' | 'UPCOMING'; // Indexed, default 'UPCOMING'
+  date:         Date;               // Required, indexed — time embedded
+  endDate?:     Date;               // Indexed
+  timeDisplay:  string;             // Human-readable: "6:00 PM – 8:00 PM"
+  location:     string;             // Required
+  color?:       string;             // Hex e.g. '#CCF900'
+}
+// Lifecycle: deleted by cron job 1 day after event.date
+\end{lstlisting}
+
+\section{PersonalEvent Model (Per-User Smart Inbox)}
+
+\begin{lstlisting}[language=TypeScript, caption={PersonalEvent.model.ts — Schema Definition}]
+interface IPersonalEvent {
+  userId:        ObjectId;          // Ref: User, indexed
+  gmailMessageId:string;            // Gmail-assigned message ID
+  title:         string;            // Required
+  description?:  string;
+  icon:          string;            // Emoji
+  badge:         'LIVE' | 'UPCOMING';
+  date:          Date;              // Required — time-embedded ISO date
+  endDate?:      Date;              // Indexed
+  timeDisplay:   string;            // Human-readable time string
+  location:      string;            // Required
+  color?:        string;            // Hex color
+  sourceFrom:    string;            // Original email sender
+  sourceSubject: string;            // Original email subject
+  reminderSent?: boolean;           // Has 1-hour reminder been sent?
+  category:      EventCategory;     // See enum below
+}
+
+type EventCategory =
+  | 'clubs'
+  | 'interviews'
+  | 'mess'
+  | 'google_classroom'
+  | 'lost_found'
+  | 'academic'
+  | 'general';
+
+// Indexes:
+//   Unique compound: { userId: 1, gmailMessageId: 1 }
+//   Performance:     { date: 1, reminderSent: 1 }
+// Lifecycle: deleted by cron 28 days after creation
+\end{lstlisting}
+
+\section{ProcessedEmail Model (AI Parse Cache)}
+
+\begin{lstlisting}[language=TypeScript, caption={ProcessedEmail.model.ts — Deduplication Cache}]
+interface IProcessedEmail {
+  emailMessageId:   string;     // RFC 2822 Message-ID header — unique, indexed
+  isEvent:          boolean;    // Groq AI decision (cached)
+  eventTitle?:      string;
+  eventDescription?:string;
+  eventDate?:       Date;       // Time-embedded ISO date
+  eventEndDate?:    Date;
+  eventTimeDisplay?:string;
+  eventLocation?:   string;
+  eventBadge?:      'LIVE' | 'UPCOMING';
+  eventIcon?:       string;
+  eventColor?:      string;
+  eventCategory?:   string;
+  processedByUsers: ObjectId[]; // Users who have already received this event
+}
+// Lifecycle: deleted by cron 7 days after creation
+// Purpose: same email sent to N users = 1 AI call, N-1 cache hits
+\end{lstlisting}
+
+\section{Mail \& Category Models}
+
+\begin{lstlisting}[language=TypeScript, caption={Mail.model.ts and Category.model.ts}]
+// ── Mail Model ───────────────────────────────────────────────
+interface IMail {
+  categoryId: number;               // Indexed
+  sender:     string;               // Required
+  subject:    string;               // Required
+  body:       string;               // Required
+  isRead:     boolean;              // Default false
+  priority:   'low' | 'medium' | 'high';
+}
+// Unique index: { sender, subject, body } — prevents duplicates
+// TTL: documents auto-deleted after 604800 seconds (7 days)
+
+// ── Category Model ───────────────────────────────────────────
+interface ICategory {
+  categoryId: number;   // Unique, indexed
+  name:       string;   // Unique
+  icon:       string;   // Lucide icon name
+  color:      string;   // Hex color code
+}
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────
+\chapter{Core Services}
+% ─────────────────────────────────────────────────────────────
+
+\section{Gmail Watcher Service}
+
+The Gmail Watcher is the \textbf{central engine} of PulseBoard. It runs as a \code{setInterval} loop every 5 minutes, scanning every registered Google user's Gmail inbox for campus-relevant emails.
+
+\begin{lstlisting}[language=TypeScript, caption={gmailWatcher.service.ts — Core Logic}]
+export function startGmailWatcher(intervalMs = 300_000) {
+  checkAllUsers();                        // Run immediately on boot
+  setInterval(checkAllUsers, intervalMs); // Then every 5 minutes
+}
+
+async function checkAllUsers() {
+  // Only scan users who have the app installed (expoPushToken set)
+  const users = await User.find({
+    googleAccessToken: { $exists: true },
+    expoPushToken:     { $exists: true }
+  });
+
+  // Process in batches of 10 to avoid Gmail rate limits
+  for (let i = 0; i < users.length; i += 10) {
+    const batch = users.slice(i, i + 10);
+    await Promise.allSettled(batch.map(u => checkUserEmails(u)));
+  }
+}
+
+async function checkUserEmails(user: IUser) {
+  // 1. Fetch last 50 unread emails from past 30 days
+  const messages = await gmailRequest(user, '/messages?q=is:unread newer_than:30d&maxResults=50');
+
+  for (const msg of messages) {
+    // 2. Extract RFC 2822 Message-ID header (globally unique per email)
+    const messageId = extractHeader(msg.payload.headers, 'Message-ID');
+
+    // 3. Check deduplication cache
+    const cached = await ProcessedEmail.findOne({ emailMessageId: messageId });
+
+    let parsed;
+    if (cached && !cached.processedByUsers.includes(user._id)) {
+      // Cache HIT — reuse AI result from another user's processing
+      parsed = cached;
+    } else if (!cached) {
+      // Cache MISS — call Groq AI (one API call for all recipients)
+      const subject = extractHeader(msg.payload.headers, 'Subject');
+      const body    = extractBody(msg.payload);
+      parsed = await parseEventFromEmail(subject, body);
+      await ProcessedEmail.create({ emailMessageId: messageId, ...parsed });
+    }
+
+    if (parsed?.isEvent) {
+      // 4. Create PersonalEvent for this user
+      await PersonalEvent.findOneAndUpdate(
+        { userId: user._id, gmailMessageId: msg.id },
+        { ...parsed, userId: user._id },
+        { upsert: true }
+      );
+
+      // 5. If this user is a club account, publish to global Event feed
+      const linkedClub = await Club.findOne({ email: user.email });
+      if (linkedClub) {
+        await Event.create({ clubId: linkedClub.clubId, ...parsed });
+      }
+
+      // 6. Send push notification for interview opportunities
+      if (parsed.eventCategory === 'interviews' && user.expoPushToken) {
+        await sendPushNotification(user.expoPushToken,
+          '💼 Interview Opportunity', parsed.eventTitle);
+      }
+    }
+
+    // Mark this user as processed for this message
+    await ProcessedEmail.findOneAndUpdate(
+      { emailMessageId: messageId },
+      { $addToSet: { processedByUsers: user._id } }
+    );
+  }
+}
+
+// Auto-refresh expired access tokens (1h expiry)
+async function gmailRequest(user: IUser, path: string) {
+  const res = await axios.get(`https://gmail.googleapis.com/gmail/v1/users/me${path}`, {
+    headers: { Authorization: `Bearer ${user.googleAccessToken}` }
+  });
+  if (res.status === 401 && user.googleRefreshToken) {
+    const client = new OAuth2Client(...);
+    client.setCredentials({ refresh_token: user.googleRefreshToken });
+    const { credentials } = await client.refreshAccessToken();
+    user.googleAccessToken = credentials.access_token!;
+    await user.save();
+    // Retry with new token...
+  }
+  return res.data;
+}
+\end{lstlisting}
+
+\section{Email Parser Service}
+
+The Email Parser sends email content to \textbf{Groq's Llama 3.1 8B Instant} model with a carefully engineered prompt that instructs the AI to classify, extract, and structure campus event information.
+
+\begin{lstlisting}[language=TypeScript, caption={emailParser.service.ts — AI Parsing Logic}]
+export async function parseEventFromEmail(
+  subject: string,
+  body: string
+): Promise<ParsedEvent | null> {
+
+  const response = await axios.post(
+    'https://api.groq.com/openai/v1/chat/completions',
+    {
+      model: 'llama-3.1-8b-instant',
+      messages: [{
+        role: 'user',
+        content: buildPrompt(subject, body)
+      }],
+      response_format: { type: 'json_object' }
+    },
+    { headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}` } }
+  );
+
+  const result = JSON.parse(response.data.choices[0].message.content);
+
+  if (!result.isEvent) return null;
+
+  return {
+    isEvent:      true,
+    title:        result.title,
+    description:  result.description,
+    date:         new Date(result.date),    // Time EMBEDDED in ISO string
+    endDate:      result.endDate ? new Date(result.endDate) : undefined,
+    timeDisplay:  result.timeDisplay,       // "5:00 PM – 7:00 PM"
+    location:     result.location || 'TBD',
+    badge:        result.badge,             // 'LIVE' | 'UPCOMING'
+    icon:         result.icon,              // Emoji
+    color:        result.color,             // Hex color
+    category:     validateCategory(result.category),
+  };
+}
+\end{lstlisting}
+
+\subsection{AI Prompt Design}
+
+The prompt instructs the LLM with explicit rules for:
+
+\begin{table}[H]
+\centering
+\rowcolors{2}{rowodd}{roweven}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X}
+\rowcolor{tableheadbg}
+\color{white}Rule & \color{white}Detail \\
+\toprule
+INCLUDE          & Club events, fests, hackathons, workshops, seminars \\
+INCLUDE          & Interview/placement drives from companies or college \\
+INCLUDE          & Exam schedules, deadlines, academic requirements     \\
+INCLUDE          & Sports events, scholarships, conferences             \\
+BLOCK            & OTPs, password resets, login alerts                 \\
+BLOCK            & E-commerce: Myntra, Amazon, Flipkart, Nykaa, Meesho \\
+BLOCK            & Sale offers, discount codes, order confirmations     \\
+BLOCK            & Social media notifications, brand promotions         \\
+Time Rule        & Embed exact time in ISO date (not midnight!)         \\
+Time Rule        & Deadlines default to 11:59 PM                       \\
+Time Rule        & Resolve ``tomorrow'', ``next Monday'' from today's date \\
+\bottomrule
+\end{tabularx}
+\caption{AI Prompt Classification Rules}
+\end{table}
+
+\subsection{Category \& Color Mapping}
+
+\begin{table}[H]
+\centering
+\rowcolors{2}{rowodd}{roweven}
+\begin{tabularx}{\textwidth}{l l l X}
+\rowcolor{tableheadbg}
+\color{white}Category & \color{white}Icon & \color{white}Color & \color{white}Matches \\
+\toprule
+clubs          & \texttt{🎭} & \texttt{\#F59E0B} & Club events, fests, cultural \\
+interviews     & \texttt{💼} & \texttt{\#F97316} & Placement drives, HR rounds  \\
+academic       & \texttt{📚} & \texttt{\#3B82F6} & Exams, timetables, labs      \\
+general        & \texttt{📢} & \texttt{\#6B7280} & Other campus-relevant emails \\
+mess           & \texttt{🍽}  & \texttt{\#10B981} & Mess menu, canteen notices   \\
+google\_classroom & \texttt{📋} & \texttt{\#4285F4} & Classroom assignments        \\
+lost\_found    & \texttt{🔍} & \texttt{\#8B5CF6} & Lost \& found notices        \\
+\bottomrule
+\end{tabularx}
+\caption{Event Category Mappings}
+\end{table}
+
+\subsection{Fallback Parser}
+
+If the Groq API is unavailable, \code{smartRegexParse()} activates as a fallback:
+
+\begin{lstlisting}[language=TypeScript, caption={Regex-based fallback parser}]
+function smartRegexParse(subject: string, body: string): ParsedEvent | null {
+  const fullText = `${subject} ${body}`.toLowerCase();
+
+  // Spam keyword blocklist check
+  const spamKeywords = ['otp', '% off', 'myntra', 'flipkart', 'order confirmed'];
+  if (spamKeywords.some(k => fullText.includes(k))) return null;
+
+  // Event keyword validation (must have at least one)
+  const eventKeywords = ['event', 'fest', 'workshop', 'hackathon', 'seminar',
+                         'interview', 'exam', 'deadline', 'tournament'];
+  const isEvent = eventKeywords.some(k => fullText.includes(k));
+  if (!isEvent) return null;
+
+  // Time extraction via regex
+  const timeRegex = /\b(\d{1,2}(?::\d{2})?\s?[AP]M)\b/gi;
+  const times = fullText.match(timeRegex);
+
+  // Date extraction (multiple formats)
+  const dateRegex = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})|
+                     (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{1,2}/gi;
+
+  return buildEventFromRegex(subject, times, dateRegex.exec(fullText));
+}
+\end{lstlisting}
+
+\section{Reminder Scheduler Service}
+
+\begin{lstlisting}[language=TypeScript, caption={reminderScheduler.service.ts}]
+export function startReminderScheduler(intervalMs = 5 * 60 * 1000) {
+  setInterval(async () => {
+    const now     = new Date();
+    const from    = new Date(now.getTime() + 55 * 60 * 1000); // now + 55 min
+    const to      = new Date(now.getTime() + 65 * 60 * 1000); // now + 65 min
+
+    const upcoming = await PersonalEvent.find({
+      date:          { $gte: from, $lte: to },
+      reminderSent:  { $ne: true }
+    }).populate('userId');
+
+    for (const event of upcoming) {
+      const user = event.userId as IUser;
+      if (!user.expoPushToken) continue;
+
+      await sendPushNotification(
+        user.expoPushToken,
+        `${event.icon} Starting in 1 hour!`,
+        `${event.title} · ${event.location}`
+      );
+
+      await PersonalEvent.findByIdAndUpdate(event._id,
+        { reminderSent: true }
+      );
+    }
+  }, intervalMs);
+}
+// 10-minute window (55–65 min) absorbs scheduler timing drift
+\end{lstlisting}
+
+\section{LHC Service}
+
+\begin{lstlisting}[language=TypeScript, caption={lhc.service.ts — Room Availability}]
+const LHC_ROOMS = ['110', '205', '206', '305', '306', '308'];
+
+// Checks if a room is available in a given time window
+export async function isLHCRoomAvailable(
+  room: string,
+  start: Date,
+  end: Date,
+  excludeEventId?: string
+): Promise<{ available: boolean; conflict?: IEvent }> {
+
+  // Check global Event collection
+  const conflict = await Event.findOne({
+    _id:      { $ne: excludeEventId },
+    location: { $regex: `LHC.?${room}`, $options: 'i' },
+    date:     { $lt: end },
+    endDate:  { $gt: start }
+  });
+
+  if (conflict) return { available: false, conflict };
+  return { available: true };
+}
+
+// Returns all bookings for heatmap visualization
+export async function getLHCHeatmap(date: Date): Promise<LHCBooking[]> {
+  const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
+  const dayEnd   = new Date(date); dayEnd.setHours(23, 59, 59, 999);
+
+  const events = await Event.find({
+    date: { $gte: dayStart, $lte: dayEnd },
+    location: { $regex: 'LHC', $options: 'i' }
+  });
+
+  return events.map(e => ({
+    room:  extractLHCRoom(e.location),
+    title: e.title,
+    start: e.date.toISOString(),
+    end:   e.endDate?.toISOString() ?? addOneHour(e.date).toISOString(),
+    type:  'club',
+    color: e.color
+  }));
+}
+\end{lstlisting}
+
+\section{Push Notification Service}
+
+\begin{lstlisting}[language=TypeScript, caption={notification.service.ts}]
+export async function sendPushNotification(
+  expoPushToken: string,
+  title:         string,
+  body:          string,
+  data:          object = {}
+) {
+  // Validate token format
+  if (!expoPushToken.startsWith('ExponentPushToken[') &&
+      !expoPushToken.startsWith('ExpoPushToken[')) {
+    console.warn('Invalid Expo push token:', expoPushToken);
+    return;
+  }
+
+  await axios.post('https://exp.host/--/api/v2/push/send', {
+    to:    expoPushToken,
+    sound: 'default',
+    title,
+    body,
+    data,
+  }, {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+\end{lstlisting}
+
+\section{Cron Jobs}
+
+\begin{lstlisting}[language=TypeScript, caption={jobs/cron.ts — Daily Data Retention}]
+import cron from 'node-cron';
+
+export function initCronJobs() {
+  // Runs every day at midnight: 0 0 * * *
+  cron.schedule('0 0 * * *', async () => {
+    const now = new Date();
+
+    // 1. Delete global events older than 1 day
+    const events = await Event.deleteMany({
+      date: { $lt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000) }
+    });
+
+    // 2. Delete personal events older than 28 days
+    const personal = await PersonalEvent.deleteMany({
+      createdAt: { $lt: new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000) }
+    });
+
+    // 3. Delete processed email cache older than 7 days
+    // Forces monthly re-analysis of recurring emails
+    const cache = await ProcessedEmail.deleteMany({
+      createdAt: { $lt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) }
+    });
+
+    console.log(`[CRON] Cleaned: ${events.deletedCount} events,
+      ${personal.deletedCount} personal, ${cache.deletedCount} cache`);
+  });
+}
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────
+\chapter{Mobile Application}
+% ─────────────────────────────────────────────────────────────
+
+\section{Navigation Architecture}
+
+PulseBoard uses \textbf{Expo Router} (file-based routing) — the file structure directly defines the navigation graph.
+
+\begin{lstlisting}[language=bash, caption={Expo Router Navigation Tree}]
+app/
+├── _layout.tsx           # Root Stack Navigator + ThemeProvider
+├── index.tsx             # Welcome screen (auto-redirects if token exists)
+├── auth/
+│   ├── login.tsx         # Email/password + Google OAuth login
+│   ├── register.tsx      # Registration (IITJ emails only)
+│   ├── verify-otp.tsx    # OTP verification
+│   └── forgot-password/  # Password reset flow
+├── tabs/
+│   ├── _layout.tsx       # Bottom Tab Navigator (5 tabs)
+│   ├── home.tsx          # Event feed + sidebar menu
+│   ├── clubs.tsx         # Club directory
+│   ├── inbox.tsx         # AI-parsed Gmail events
+│   ├── profile.tsx       # User profile
+│   └── calendar.tsx      # (via tab or route)
+├── club_tabs/            # Club admin portal (separate nav stack)
+│   ├── home.tsx
+│   ├── posts.tsx
+│   └── profile.tsx
+├── calendar.tsx          # Full calendar view
+├── heatmap.tsx           # LHC room heatmap
+├── sos.tsx               # Emergency contacts
+└── settings.tsx          # App settings
+\end{lstlisting}
+
+\begin{lstlisting}[language=TypeScript, caption={app/\_layout.tsx — Root Navigator}]
+export default function RootLayout() {
+  useEffect(() => {
+    // Register push notification token on every app launch
+    registerForPushNotifications().then(async (token) => {
+      if (!token) return;
+      await AsyncStorage.setItem('expoPushToken', token);
+      api.post('/users/save-push-token', { expoPushToken: token }).catch(() => {});
+    });
+  }, []);
+
+  return (
+    <ThemeProvider>
+      <StatusBar style="light" />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="auth" />
+        <Stack.Screen name="tabs" />
+        <Stack.Screen name="calendar" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="sos" />
+        <Stack.Screen name="heatmap" />
+      </Stack>
+    </ThemeProvider>
+  );
+}
+\end{lstlisting}
+
+\section{API Client Layer}
+
+\begin{lstlisting}[language=TypeScript, caption={src/api/client.ts — Axios Instance}]
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const api = axios.create({
+  baseURL: `${process.env.EXPO_PUBLIC_API_URL}/api`,
+  timeout: 15000,
+});
+
+// Auto-attach JWT from AsyncStorage to every request
+api.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export default api;
+\end{lstlisting}
+
+\section{Screen Breakdown}
+
+\subsection{Welcome Screen (\texttt{index.tsx})}
+
+The splash/welcome screen that auto-redirects authenticated users to \code{/tabs/home}:
+
+\begin{itemize}[leftmargin=*]
+  \item On mount: checks \code{AsyncStorage} for JWT token
+  \item If token found: \code{router.replace('/tabs/home')}
+  \item If no token: renders welcome UI with Sign Up and Login buttons
+  \item Design: Dark ``PB'' logo with volt yellow accent, skewed typography
+\end{itemize}
+
+\subsection{Home Screen (\texttt{tabs/home.tsx})}
+
+\begin{lstlisting}[language=TypeScript, caption={Home Screen — Data Loading}]
+const loadData = async () => {
+  const [userData, eventData, allClubs, personalData] = await Promise.all([
+    getUserProfile(),       // GET /users/me
+    getEventFeed(),         // GET /events/feed
+    getAllClubs(),           // GET /clubs
+    getPersonalEvents(),    // GET /personal-events
+  ]);
+
+  // Check if this user is a club admin
+  const linkedClub = allClubs.find(c =>
+    c.email?.toLowerCase() === profile.email?.toLowerCase()
+  );
+  setAdminClub(linkedClub);   // Shows "Publish Event" in sidebar
+
+  // Separate interview events from personal events
+  setInterviewEvents(personalData.filter(e => e.category === 'interviews'));
+};
+\end{lstlisting}
+
+\textbf{Features:}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Happening Now} — horizontally scrollable live event cards for followed clubs
+  \item \textbf{Coming Up} — chronologically sorted upcoming events + interview alerts
+  \item \textbf{Sidebar Menu} — slide-in panel with: LHC Heatmap, S.O.S., Settings, Logout
+  \item \textbf{Admin Panel} — if logged-in user is a club admin, shows ``Publish Event'' modal
+  \item \textbf{Event Detail Modal} — full bottom sheet with image, description, date, location
+\end{itemize}
+
+\subsection{Smart Inbox Screen (\texttt{tabs/inbox.tsx})}
+
+\begin{lstlisting}[language=TypeScript, caption={Inbox Screen — Filter Logic}]
+const FILTERS = [
+  { label: 'ALL',        value: 'all' },
+  { label: 'CLUBS',      value: 'clubs' },
+  { label: 'INTERVIEWS', value: 'interviews' },
+  { label: 'MESS',       value: 'mess' },
+  { label: 'CLASSROOM',  value: 'google_classroom' },
+  { label: 'LOST & FOUND', value: 'lost_found' },
+  { label: 'ACADEMIC',   value: 'academic' },
+  { label: 'GENERAL',    value: 'general' },
+];
+
+// Filter events by active category chip
+const filteredEvents = filter === 'all'
+  ? events
+  : events.filter(e => e.category === filter);
+
+// Force re-scan: clear server-side cache + trigger fresh Gmail analysis
+const handleRescan = async () => {
+  await api.post('/personal-events/rescan');
+  // Re-analysis happens within 5 minutes on next watcher cycle
+  fetchEvents();
+};
+\end{lstlisting}
+
+\subsection{Clubs Screen (\texttt{tabs/clubs.tsx})}
+
+\begin{itemize}[leftmargin=*]
+  \item 2-column grid of club cards with emoji icons
+  \item Live search by name and description
+  \item Category filter tabs (Technical / Cultural / Literary / Other)
+  \item Follow/unfollow with optimistic UI update
+  \item Stats strip: total clubs count + user's following count
+\end{itemize}
+
+\subsection{Calendar Screen (\texttt{calendar.tsx})}
+
+\begin{lstlisting}[language=TypeScript, caption={Calendar — Time Parsing Logic}]
+// Parses "6:00 PM – 8:00 PM" → ISO date objects
+function parseTimeDisplay(timeDisplay: string, baseDate: string) {
+  const timeRangeRegex = /(\d{1,2}(?::\d{2})?\s?[AP]M)\s*[-–]\s*(\d{1,2}(?::\d{2})?\s?[AP]M)/i;
+  const singleTimeRegex = /(\d{1,2}(?::\d{2})?\s?[AP]M)/i;
+
+  const rangeMatch = timeDisplay.match(timeRangeRegex);
+  if (rangeMatch) {
+    return {
+      start: parseTime(rangeMatch[1], baseDate),
+      end:   parseTime(rangeMatch[2], baseDate)
+    };
+  }
+
+  const singleMatch = timeDisplay.match(singleTimeRegex);
+  if (singleMatch) {
+    const start = parseTime(singleMatch[1], baseDate);
+    return { start, end: addOneHour(start) };
+  }
+
+  // Default: 9 AM – 10 AM
+  return { start: setTime(baseDate, 9), end: setTime(baseDate, 10) };
+}
+\end{lstlisting}
+
+\subsection{LHC Heatmap Screen (\texttt{heatmap.tsx})}
+
+\begin{itemize}[leftmargin=*]
+  \item Rooms tracked: \texttt{110, 205, 206, 305, 306, 308}
+  \item Time grid: 8 AM – 9 PM in hourly rows
+  \item Real-time occupancy status cards (animated pulsing dot)
+  \item Horizontal + vertical scroll for full timeline view
+  \item Date navigation (previous/next day)
+  \item Color-coded blocks: club events vs personal events
+  \item Double-booking prevention via \code{isLHCRoomAvailable()}
+\end{itemize}
+
+\subsection{SOS Screen (\texttt{sos.tsx})}
+
+\begin{itemize}[leftmargin=*]
+  \item Emergency contact cards with one-tap \code{Linking.openURL('tel:...')}
+  \item Sections: Medical, Campus Security, Counseling, Important Links
+  \item Red accent theme with \code{HeartPulse} and \code{AlertTriangle} icons
+  \item Platform-specific (iOS/Android) phone call handling
+\end{itemize}
+
+\section{Theme Context}
+
+\begin{lstlisting}[language=TypeScript, caption={src/context/ThemeContext.tsx}]
+export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { setColorScheme } = useNativeWindColorScheme();
+  const [theme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    // Lock to dark mode globally — activates dark: Tailwind classes
+    setColorScheme('dark');
+  }, []);
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme: () => {}, isDark: true }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+// Usage in any component:
+// const { isDark } = useTheme();
+\end{lstlisting}
+
+\begin{warnbox}{Important: darkMode config}
+\code{tailwind.config.js} must use \texttt{darkMode: "media"} (not \texttt{"class"}) for NativeWind's \code{setColorScheme()} to activate \texttt{dark:} prefixed classes. Using \texttt{"class"} mode requires a DOM-level \texttt{.dark} parent class which doesn't exist in React Native.
+\end{warnbox}
+
+% ─────────────────────────────────────────────────────────────
+\chapter{Data Flows \& Sequence Diagrams}
+% ─────────────────────────────────────────────────────────────
+
+\section{User Registration Flow}
+
+\begin{lstlisting}[language=bash, caption={Registration Sequence}]
+Mobile                 Backend              MongoDB              Gmail SMTP
+  |                      |                     |                     |
+  |-- POST /register --> |                     |                     |
+  |  { name, email,      |                     |                     |
+  |    password }        |-- bcrypt hash() --> |                     |
+  |                      |-- check club email->|                     |
+  |                      |-- User.create() --> |                     |
+  |                      |-- generateOTP() --> |                     |
+  |                      |-- sendOtpEmail() -------------------- --> |
+  |<-- 201 { email } --- |                     |                     |
+  |                      |                     |                     |
+  |-- POST /verify-otp ->|                     |                     |
+  |  { email, otp }      |-- validateOTP() --> |                     |
+  |                      |-- markVerified() --> |                    |
+  |                      |-- signJWT() ------> |                     |
+  |<-- 200 { token } --- |                     |                     |
+  |-- AsyncStorage.setItem('token') [mobile]   |                     |
+  |-- POST /save-push-token [background]       |                     |
+\end{lstlisting}
+
+\section{Gmail Email → Smart Inbox Flow}
+
+\begin{lstlisting}[language=bash, caption={Email Parsing Pipeline}]
+Gmail              GmailWatcher        ProcessedEmail    Groq API     MongoDB
+  |                    |  (every 5min)       |               |             |
+  |                    |-- fetch users ------------------------------>     |
+  |                    |<-- users with googleAccessToken + pushToken --   |
+  |                    |                     |               |             |
+  |<-- Gmail API req --| (50 unread emails)  |               |             |
+  |--> messages[] ---> |                     |               |             |
+  |                    |                     |               |             |
+  |                    |-- extract Message-ID|               |             |
+  |                    |-- findOne() ------> |               |             |
+  |                    |                     |               |             |
+  |   [Cache MISS]     |<-- null ----------- |               |             |
+  |                    |-- parseEventFromEmail() ----------> |             |
+  |                    |                     |   LLM output <|             |
+  |                    |-- create cache ---- |               |             |
+  |                    |                     |               |             |
+  |   [Cache HIT]      |<-- cached result -- |               |             |
+  |                    |                     |               |             |
+  |                    |-- PersonalEvent.upsert() --------------------------->
+  |                    |-- if club account: Event.create() ----------------->
+  |                    |-- sendPushNotification() (interviews only)           |
+\end{lstlisting}
+
+\section{Event Creation Flow (Club Admin)}
+
+\begin{lstlisting}[language=bash, caption={Club Event Publishing}]
+Mobile (Club Admin)      Backend           Cloudinary        MongoDB
+  |                         |                   |                |
+  | POST /events            |                   |                |
+  | FormData:               |                   |                |
+  |   title, location,      |-- upload image -->|                |
+  |   date, timeDisplay,    |<-- imageUrl ----  |                |
+  |   badge, image          |                   |                |
+  |                         |-- check LHC availability -------> |
+  |                         |   if conflict: 409 Conflict        |
+  |                         |-- Event.create() ---------------> |
+  |                         |-- get club followers ------------> |
+  |                         |-- sendPushNotification() x N      |
+  |<-- 201 { event } -----  |                   |                |
+\end{lstlisting}
+
+\section{1-Hour Reminder Flow}
+
+\begin{lstlisting}[language=bash, caption={Reminder Scheduler Sequence}]
+ReminderScheduler (5-min interval)       MongoDB         Expo Push API
+  |                                          |                 |
+  |-- PersonalEvent.find({                   |                 |
+  |     date: { $gte: now+55m, $lte: now+65m},                |
+  |     reminderSent: false                  |                 |
+  |   }) ----------------------------------> |                 |
+  |<-- [ event1, event2, ... ] ------------ |                 |
+  |                                          |                 |
+  | for each event:                          |                 |
+  |   sendPushNotification(token, ...) -------------------- -> |
+  |   PersonalEvent.update({ reminderSent: true }) -------> |  |
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────
+\chapter{Authentication \& Security}
+% ─────────────────────────────────────────────────────────────
+
+\section{JWT Authentication}
+
+\begin{lstlisting}[language=TypeScript, caption={auth.middleware.ts}]
+export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  const token = header.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    req.user = decoded;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+};
+// Token expiry: 7 days
+// Algorithm:   HS256
+\end{lstlisting}
+
+\section{Google OAuth Flow}
+
+PulseBoard supports two distinct OAuth flows depending on the client:
+
+\begin{table}[H]
+\centering
+\rowcolors{2}{rowodd}{roweven}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X X}
+\rowcolor{tableheadbg}
+\color{white}Flow & \color{white}Mobile (Expo) & \color{white}Web OAuth \\
+\toprule
+Token Type   & \texttt{id\_token} (verified directly)       & \texttt{code} exchanged for tokens \\
+Refresh Token & Not provided (implicit flow)                & Yes — stored for Gmail API \\
+Use Case     & Basic login, identity verification          & Gmail inbox access \\
+Library      & \texttt{google-auth-library} verifyIdToken  & \texttt{getToken(code, redirectUri)} \\
+\bottomrule
+\end{tabularx}
+\caption{Google OAuth Flow Comparison}
+\end{table}
+
+\section{Password Security}
+
+\begin{lstlisting}[language=TypeScript, caption={Password Hashing (bcryptjs)}]
+// Registration
+const salt = await bcrypt.genSalt(10);
+user.password = await bcrypt.hash(password, salt);
+
+// Login verification
+const valid = await bcrypt.compare(plainPassword, user.password);
+
+// OTP generation
+export function generateOtp(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+// OTP validity: 10 minutes for registration, 15 minutes for reset
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────
+\chapter{Configuration \& Deployment}
+% ─────────────────────────────────────────────────────────────
+
+\section{Environment Variables}
+
+\subsection{Backend (\texttt{pulseboard\_backend/.env})}
+
+\begin{lstlisting}[language=bash, caption={Backend Environment Variables}]
+# Database
+MONGO_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/pulseboard
+
+# Authentication
+JWT_SECRET=your-secret-key-min-32-chars
+ADMIN_SEED_KEY=pulseboard_admin_2026
+
+# Google OAuth
+GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxxx
+GOOGLE_REDIRECT_URI=http://localhost:8082/auth/google/callback
+GOOGLE_MOBILE_CLIENT_ID=xxx.apps.googleusercontent.com
+
+# Email Services
+GMAIL_WATCHER_USER=your-gmail@gmail.com
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+SENDGRID_API_KEY=SG.xxxx
+SENDGRID_FROM_EMAIL=noreply@pulseboard23.gmail.com
+MAILGUN_API_KEY=xxxx
+MAILGUN_DOMAIN=sandbox.mailgun.org
+
+# AI Services
+GROQ_API_KEY=gsk_xxxx
+GEMINI_API_KEY=AIzaSy_xxxx        # Optional fallback
+HUGGING_FACE_TOKEN=hf_xxxx        # For BART classifier
+
+# File Storage (Cloudinary)
+CLOUDINARY_CLOUD_NAME=your-cloud
+CLOUDINARY_API_KEY=xxxx
+CLOUDINARY_API_SECRET=xxxx
+
+# Server
+PORT=8082
+\end{lstlisting}
+
+\subsection{Mobile (\texttt{pulseboard\_mobile/.env})}
+
+\begin{lstlisting}[language=bash, caption={Mobile Environment Variables}]
+# Backend API URL (use local IP for Expo Go)
+EXPO_PUBLIC_API_URL=http://172.31.97.254:8082
+
+# Google OAuth (web client ID for OAuth flow)
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=xxx.apps.googleusercontent.com
+\end{lstlisting}
+
+\begin{warnbox}{Local Development Note}
+The \code{EXPO\_PUBLIC\_API\_URL} must use your machine's local network IP (not \texttt{localhost}) since the Expo app runs on a physical device. Run \texttt{ipconfig getifaddr en0} on macOS to get the current IP. This IP changes on every network reconnect.
+\end{warnbox}
+
+\section{Expo App Configuration}
+
+\begin{lstlisting}[language=JSON, caption={pulseboard\_mobile/app.json (excerpt)}]
+{
+  "expo": {
+    "name": "pulseboard_mobile",
+    "slug": "pulseboard_mobile",
+    "scheme": "com.anonymous.pulseboard-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "newArchEnabled": false,
+    "plugins": [
+      "expo-router",
+      "expo-asset",
+      ["expo-notifications", {
+        "icon": "./assets/icon.png",
+        "color": "#050505"
+      }],
+      "@react-native-community/datetimepicker"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.anonymous.pulseboard-mobile"
+    },
+    "android": {
+      "package": "com.anonymous.pulseboard_mobile",
+      "useNextNotificationsApi": true,
+      "predictiveBackGestureEnabled": false
+    }
+  }
+}
+\end{lstlisting}
+
+\section{Running the Project}
+
+\begin{lstlisting}[language=bash, caption={Development Setup Commands}]
+# ── Backend ──────────────────────────────────────────────────
+cd pulseboard_backend
+npm install
+cp .env.example .env      # Fill in all environment variables
+npm run dev               # ts-node src/server.ts (port 8082)
+
+# ── Mobile ───────────────────────────────────────────────────
+cd pulseboard_mobile
+npm install
+# Update .env with your local machine IP:
+echo "EXPO_PUBLIC_API_URL=http://$(ipconfig getifaddr en0):8082" > .env
+npx expo start            # Scan QR with Expo Go app
+npx expo start --clear    # Clear Metro bundler cache (recommended after pulls)
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────
+\chapter{Known Issues \& Future Work}
+% ─────────────────────────────────────────────────────────────
+
+\section{Current Limitations}
+
+\begin{table}[H]
+\centering
+\rowcolors{2}{rowodd}{roweven}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X X}
+\rowcolor{tableheadbg}
+\color{white}Issue & \color{white}Description & \color{white}Proposed Fix \\
+\toprule
+Race Condition     & Two users with same email can both get cache miss simultaneously, causing 2 Groq calls & Redis \texttt{SETNX} distributed lock on \texttt{emailMessageId} \\
+5-min Latency      & Events can take up to 5 minutes to appear after email arrives & Gmail Push Notifications via Google Cloud Pub/Sub \\
+Token Security     & \texttt{googleAccessToken} stored in plaintext in MongoDB & AES-256 encryption at rest \\
+Token Revocation   & User revokes Google access — watcher silently fails & Detect \texttt{invalid\_grant}, clear tokens, notify user to re-auth \\
+AI Hallucinations  & Llama may extract wrong dates or miscategorize emails & Post-processing validation + user ``mark as not event'' feedback \\
+Gmail Quota        & 1000+ users × 50 emails × every 5min = possible quota exhaustion & Per-user rate limiting + exponential backoff \\
+Cold Start Delay   & New users wait up to 5 min for first inbox scan & Trigger \texttt{checkUserEmails()} immediately after Google OAuth \\
+No User Control    & Users can't delete individual events or mute categories & Per-category settings toggle + individual event deletion \\
+IITJ Email Lock    & Registration restricted to \texttt{@iitj.ac.in} — may need updating & Configurable email domain allowlist \\
+\bottomrule
+\end{tabularx}
+\caption{Known Issues and Proposed Fixes}
+\end{table}
+
+\section{Feature Roadmap}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Real-time Gmail Webhooks} — Replace polling with Gmail Pub/Sub push notifications for sub-30-second event detection
+  \item \textbf{Club Chat} — In-app messaging channel per club
+  \item \textbf{Event RSVP} — Students confirm attendance; clubs see headcount
+  \item \textbf{AI Event Suggestions} — Personalized recommendations based on following patterns
+  \item \textbf{Offline Support} — Cache last-fetched events in AsyncStorage
+  \item \textbf{Dark/Light Theme Toggle} — Currently locked to dark mode
+  \item \textbf{EAS Build} — Expo Application Services for OTA updates and production builds
+  \item \textbf{Web Dashboard} — Club admin portal as a web app
+  \item \textbf{Analytics} — Event engagement, follow trends, inbox accuracy metrics
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────
+\chapter{Dependency Reference}
+% ─────────────────────────────────────────────────────────────
+
+\section{Backend Dependencies}
+
+\begin{longtable}{>{\ttfamily}l l p{7cm}}
+\rowcolor{tableheadbg}
+\color{white}\normalfont Package & \color{white}Version & \color{white}Purpose \\
+\endfirsthead
+\rowcolor{tableheadbg}
+\color{white}\normalfont Package & \color{white}Version & \color{white}Purpose \\
+\endhead
+\toprule
+\rowcolor{rowodd}  express              & 4.21.2   & HTTP web framework \\
+\rowcolor{roweven} mongoose             & 9.1.5    & MongoDB ODM + schema validation \\
+\rowcolor{rowodd}  cors                 & 2.8.6    & Cross-Origin Resource Sharing \\
+\rowcolor{roweven} morgan               & 1.10.1   & HTTP request logging \\
+\rowcolor{rowodd}  jsonwebtoken         & 9.0.3    & JWT generation and verification \\
+\rowcolor{roweven} bcryptjs             & 3.0.3    & Password hashing (bcrypt) \\
+\rowcolor{rowodd}  google-auth-library  & 10.5.0   & Google OAuth 2.0 token handling \\
+\rowcolor{roweven} axios                & 1.13.6   & HTTP client (Groq API, Gmail API) \\
+\rowcolor{rowodd}  nodemailer           & 8.0.3    & SMTP email (OTP delivery) \\
+\rowcolor{roweven} @sendgrid/mail       & 8.1.6    & SendGrid API (password resets) \\
+\rowcolor{rowodd}  cloudinary           & 1.41.3   & Image CDN storage \\
+\rowcolor{roweven} multer               & 2.1.1    & Multipart file upload middleware \\
+\rowcolor{rowodd}  node-cron            & 4.2.1    & Cron-style scheduled tasks \\
+\rowcolor{roweven} chrono-node          & 2.9.0    & NLP date parsing (fallback) \\
+\rowcolor{rowodd}  helmet               & 8.1.0    & HTTP security headers \\
+\rowcolor{roweven} compression          & 1.8.1    & Gzip response compression \\
+\rowcolor{rowodd}  dotenv               & 17.2.3   & Environment variable loading \\
+\rowcolor{roweven} typescript           & 5.9.3    & TypeScript compiler \\
+\bottomrule
+\end{longtable}
+
+\section{Mobile Dependencies}
+
+\begin{longtable}{>{\ttfamily}l l p{7cm}}
+\rowcolor{tableheadbg}
+\color{white}\normalfont Package & \color{white}Version & \color{white}Purpose \\
+\endfirsthead
+\rowcolor{tableheadbg}
+\color{white}\normalfont Package & \color{white}Version & \color{white}Purpose \\
+\endhead
+\toprule
+\rowcolor{rowodd}  react-native              & 0.81.5   & Core mobile framework \\
+\rowcolor{roweven} expo                      & 54.0.33  & Managed React Native toolchain \\
+\rowcolor{rowodd}  expo-router               & 6.0.23   & File-based navigation \\
+\rowcolor{roweven} nativewind                & 4.2.1    & Tailwind CSS for React Native \\
+\rowcolor{rowodd}  moti                      & 0.30.0   & Animation primitives \\
+\rowcolor{roweven} react-native-reanimated   & 4.1.1    & Native animation driver \\
+\rowcolor{rowodd}  lucide-react-native       & 0.563.0  & Icon library \\
+\rowcolor{roweven} expo-image                & 3.0.11   & Optimized image component \\
+\rowcolor{rowodd}  expo-linear-gradient      & 15.0.8   & Linear gradient component \\
+\rowcolor{roweven} axios                     & 1.13.2   & HTTP API client \\
+\rowcolor{rowodd}  @react-native-async-storage/async-storage & 2.2.0 & Local key-value store \\
+\rowcolor{roweven} expo-notifications        & 0.32.16  & Push notification handling \\
+\rowcolor{rowodd}  expo-auth-session         & 7.0.10   & OAuth session management \\
+\rowcolor{roweven} expo-web-browser          & 15.0.10  & In-app browser for OAuth \\
+\rowcolor{rowodd}  react-native-responsive-screen & 1.4.2 & \texttt{wp()} / \texttt{hp()} responsive units \\
+\rowcolor{roweven} react-native-user-avatar  & 1.0.8    & Avatar component \\
+\rowcolor{rowodd}  react-native-safe-area-context & 5.6.0 & Safe area insets \\
+\rowcolor{roweven} @react-native-community/datetimepicker & 8.4.4 & Native date/time picker \\
+\bottomrule
+\end{longtable}
+
+% ─────────────────────────────────────────────────────────────
+%  End of Document
+% ─────────────────────────────────────────────────────────────
+\newpage
+\begin{center}
+\vspace*{8cm}
+{\Huge\bfseries\color{darkbg} END OF DOCUMENTATION}\\[1cm]
+\textcolor{accent}{\rule{8cm}{2pt}}\\[0.6cm]
+{\large\color{gray}\texttt{PulseBoard v1.0.0 · IIT Jodhpur · 2026}}\\[0.3cm]
+{\small\color{gray}\texttt{SYS.READY · ALL IN. ALL OUT.}}
+\end{center}
+
+\end{document}

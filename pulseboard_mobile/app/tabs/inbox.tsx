@@ -2,14 +2,25 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, FlatList, TouchableOpacity, StatusBar,
     ActivityIndicator, RefreshControl, Modal, ScrollView, Alert,
+    TextInput, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Zap, MapPin, Clock, RefreshCw, Inbox, X, Mail, Calendar } from 'lucide-react-native';
+import { Zap, MapPin, Clock, RefreshCw, Inbox, X, Mail, Calendar, Trash2, Plus, SlidersHorizontal } from 'lucide-react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import api from '../../src/api/client';
 import { useTheme } from '../../src/context/ThemeContext';
 
 const ACCENT = '#CCF900';
+
+const CATEGORY_META: Record<string, { label: string; icon: string }> = {
+    clubs:            { label: 'Clubs',           icon: '🎯' },
+    interviews:       { label: 'Interviews',       icon: '💼' },
+    mess:             { label: 'Mess',             icon: '🍽️' },
+    google_classroom: { label: 'Classroom',        icon: '📚' },
+    lost_found:       { label: 'Lost & Found',     icon: '🔍' },
+    academic:         { label: 'Academic',         icon: '🎓' },
+    general:          { label: 'General',          icon: '📌' },
+};
 
 interface PersonalEvent {
     _id: string;
@@ -40,12 +51,37 @@ const FILTERS = [
 export default function InboxScreen() {
     const { isDark } = useTheme();
     const [events, setEvents] = useState<PersonalEvent[]>([]);
+    const [mutedCategories, setMutedCategories] = useState<string[]>([]);
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [rescanning, setRescanning] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedEvent, setSelectedEvent] = useState<PersonalEvent | null>(null);
+
+    // Mute preferences sheet
+    const [showMuteSheet, setShowMuteSheet] = useState(false);
+    const [savingPrefs, setSavingPrefs] = useState(false);
+
+    // Create manual event modal
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newTitle, setNewTitle] = useState('');
+    const [newDescription, setNewDescription] = useState('');
+    const [newDate, setNewDate] = useState('');
+    const [newTimeDisplay, setNewTimeDisplay] = useState('');
+    const [newLocation, setNewLocation] = useState('');
+    const [newCategory, setNewCategory] = useState('general');
+    const [creating, setCreating] = useState(false);
+
+    const colors = {
+        bg: isDark ? '#050505' : '#FFFFFF',
+        card: isDark ? '#0F0F0F' : '#FFFFFF',
+        border: isDark ? '#1E1E1E' : '#E5E5E5',
+        text: isDark ? '#fff' : '#000',
+        subtext: isDark ? '#555' : '#888',
+        input: isDark ? '#1A1A1A' : '#F0F0F0',
+        sheet: isDark ? '#0D0D0D' : '#FFFFFF',
+    };
 
     const filteredEvents = filter === 'all' ? events : events.filter((e: any) => e.category === filter);
 
@@ -55,11 +91,80 @@ export default function InboxScreen() {
         try {
             const response = await api.get('/personal-events');
             setEvents(response.data?.events || []);
+            setMutedCategories(response.data?.mutedCategories || []);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to load smart inbox.');
         } finally {
             setLoading(false);
             if (isRefreshing) setRefreshing(false);
+        }
+    };
+
+    const handleDelete = (id: string) => {
+        Alert.alert('Delete Event', 'Remove this event from your inbox?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete', style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await api.delete(`/personal-events/${id}`);
+                        setEvents(prev => prev.filter(e => e._id !== id));
+                        if (selectedEvent?._id === id) setSelectedEvent(null);
+                    } catch {
+                        Alert.alert('Error', 'Failed to delete event.');
+                    }
+                },
+            },
+        ]);
+    };
+
+    const handleToggleMute = async (category: string) => {
+        const isCurrentlyMuted = mutedCategories.includes(category);
+        const newMuted = isCurrentlyMuted
+            ? mutedCategories.filter(c => c !== category)
+            : [...mutedCategories, category];
+
+        setSavingPrefs(true);
+        try {
+            await api.patch('/personal-events/preferences', { mutedCategories: newMuted });
+            setMutedCategories(newMuted);
+            // Hide events from newly muted category immediately
+            if (!isCurrentlyMuted) {
+                setEvents(prev => prev.filter(e => e.category !== category));
+            } else {
+                // Refresh to pull in unmuted events
+                fetchEvents(true);
+            }
+        } catch {
+            Alert.alert('Error', 'Failed to save preferences.');
+        } finally {
+            setSavingPrefs(false);
+        }
+    };
+
+    const handleCreateEvent = async () => {
+        if (!newTitle.trim() || !newDate.trim() || !newTimeDisplay.trim()) {
+            Alert.alert('Missing fields', 'Title, date (YYYY-MM-DD) and time are required.');
+            return;
+        }
+        setCreating(true);
+        try {
+            const res = await api.post('/personal-events', {
+                title: newTitle.trim(),
+                description: newDescription.trim(),
+                date: newDate.trim(),
+                timeDisplay: newTimeDisplay.trim(),
+                location: newLocation.trim() || 'TBD',
+                category: newCategory,
+            });
+            setEvents(prev => [res.data.event, ...prev]);
+            setShowCreateModal(false);
+            setNewTitle(''); setNewDescription(''); setNewDate('');
+            setNewTimeDisplay(''); setNewLocation(''); setNewCategory('general');
+        } catch (err: any) {
+            Alert.alert('Error', err.response?.data?.message || 'Failed to create event.');
+        } finally {
+            setCreating(false);
         }
     };
 
@@ -106,45 +211,49 @@ export default function InboxScreen() {
                 activeOpacity={0.75}
                 onPress={() => setSelectedEvent(item)}
                 style={{
-                    backgroundColor: isDark ? '#0F0F0F' : '#FFFFFF',
+                    backgroundColor: colors.card,
                     borderRadius: 16,
                     marginBottom: hp('1.5%'),
                     borderWidth: 1,
-                    borderColor: isDark ? '#1E1E1E' : '#E5E5E5',
+                    borderColor: colors.border,
                     overflow: 'hidden',
                     ...(isDark ? {} : { elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 })
                 }}
             >
-                {/* Colored top bar */}
                 <View style={{ height: 3, backgroundColor: cardColor }} />
 
                 <View style={{ padding: wp('4%') }}>
-                    {/* Header */}
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: wp('3%') }}>
                         <Text style={{ fontSize: hp('3%'), marginTop: 2 }}>{item.icon}</Text>
                         <View style={{ flex: 1 }}>
-                            <Text style={{ color: isDark ? '#fff' : '#000', fontWeight: '800', fontSize: hp('1.9%'), lineHeight: hp('2.5%') }} numberOfLines={2}>
+                            <Text style={{ color: colors.text, fontWeight: '800', fontSize: hp('1.9%'), lineHeight: hp('2.5%') }} numberOfLines={2}>
                                 {item.title}
                             </Text>
-                            <Text style={{ color: isDark ? '#555' : '#888', fontSize: hp('1.3%'), marginTop: 2 }} numberOfLines={1}>
+                            <Text style={{ color: colors.subtext, fontSize: hp('1.3%'), marginTop: 2 }} numberOfLines={1}>
                                 {item.sourceFrom}
                             </Text>
                         </View>
-                        {item.badge === 'LIVE' && (
-                            <View style={{ backgroundColor: 'rgba(239,68,68,0.15)', paddingHorizontal: wp('2%'), paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(239,68,68,0.4)' }}>
-                                <Text style={{ color: '#EF4444', fontSize: hp('1.1%'), fontWeight: '900', letterSpacing: 1 }}>● LIVE</Text>
-                            </View>
-                        )}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            {item.badge === 'LIVE' && (
+                                <View style={{ backgroundColor: 'rgba(239,68,68,0.15)', paddingHorizontal: wp('2%'), paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(239,68,68,0.4)' }}>
+                                    <Text style={{ color: '#EF4444', fontSize: hp('1.1%'), fontWeight: '900', letterSpacing: 1 }}>● LIVE</Text>
+                                </View>
+                            )}
+                            <TouchableOpacity
+                                onPress={() => handleDelete(item._id)}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                                <Trash2 size={hp('1.8%')} color={isDark ? '#333' : '#CCC'} />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
-                    {/* Description */}
                     {item.description ? (
                         <Text style={{ color: isDark ? '#888' : '#666', fontSize: hp('1.5%'), marginTop: hp('1%'), lineHeight: hp('2.2%') }} numberOfLines={2}>
                             {item.description}
                         </Text>
                     ) : null}
 
-                    {/* Footer row */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: hp('1.2%'), gap: wp('4%') }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <Clock size={hp('1.5%')} color={cardColor} />
@@ -154,8 +263,8 @@ export default function InboxScreen() {
                         </View>
                         {item.location !== 'TBD' && (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <MapPin size={hp('1.5%')} color={isDark ? "#555" : "#AAA"} />
-                                <Text style={{ color: isDark ? '#555' : '#AAA', fontSize: hp('1.35%') }} numberOfLines={1}>{item.location}</Text>
+                                <MapPin size={hp('1.5%')} color={colors.subtext} />
+                                <Text style={{ color: colors.subtext, fontSize: hp('1.35%') }} numberOfLines={1}>{item.location}</Text>
                             </View>
                         )}
                     </View>
@@ -165,7 +274,7 @@ export default function InboxScreen() {
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: isDark ? '#050505' : '#FFFFFF' }}>
+        <View style={{ flex: 1, backgroundColor: colors.bg }}>
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
             <SafeAreaView style={{ flex: 1 }}>
 
@@ -185,11 +294,17 @@ export default function InboxScreen() {
                                 AI-PARSED · GMAIL
                             </Text>
                         </View>
-                        <Text style={{ color: isDark ? 'white' : 'black', fontWeight: '900', fontSize: hp('3.2%'), letterSpacing: -0.5 }}>
+                        <Text style={{ color: colors.text, fontWeight: '900', fontSize: hp('3.2%'), letterSpacing: -0.5 }}>
                             Smart Inbox
                         </Text>
                     </View>
                     <View style={{ flexDirection: 'row', gap: wp('2%'), alignItems: 'center' }}>
+                        <TouchableOpacity
+                            onPress={() => setShowMuteSheet(true)}
+                            style={{ width: wp('10%'), height: wp('10%'), backgroundColor: isDark ? '#121212' : '#F5F5F7', borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? '#222' : '#EEE' }}
+                        >
+                            <SlidersHorizontal size={hp('2%')} color={isDark ? '#888' : '#666'} />
+                        </TouchableOpacity>
                         <TouchableOpacity
                             onPress={handleRescan}
                             disabled={rescanning}
@@ -219,6 +334,7 @@ export default function InboxScreen() {
                     >
                         {FILTERS.map(f => {
                             const active = filter === f.value;
+                            const muted = f.value !== 'all' && mutedCategories.includes(f.value);
                             return (
                                 <TouchableOpacity
                                     key={f.value}
@@ -232,9 +348,10 @@ export default function InboxScreen() {
                                         backgroundColor: active ? ACCENT : 'transparent',
                                         borderWidth: 1,
                                         borderColor: active ? ACCENT : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'),
+                                        opacity: muted ? 0.4 : 1,
                                     }}>
                                         <Text style={{ color: active ? '#000' : (isDark ? '#777' : '#999'), fontWeight: '700', fontSize: hp('1.4%') }}>
-                                            {f.label}
+                                            {f.label}{muted ? ' 🔕' : ''}
                                         </Text>
                                     </View>
                                 </TouchableOpacity>
@@ -248,7 +365,7 @@ export default function InboxScreen() {
                     {loading && !refreshing ? (
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                             <ActivityIndicator size="large" color={ACCENT} />
-                            <Text style={{ color: isDark ? '#555' : '#888', marginTop: hp('2%'), fontSize: hp('1.5%') }}>
+                            <Text style={{ color: colors.subtext, marginTop: hp('2%'), fontSize: hp('1.5%') }}>
                                 Loading inbox...
                             </Text>
                         </View>
@@ -259,7 +376,7 @@ export default function InboxScreen() {
                     ) : events.length === 0 ? (
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: wp('10%') }}>
                             <Inbox color={isDark ? "#222" : "#EEE"} size={hp('7%')} />
-                            <Text style={{ color: isDark ? '#fff' : '#000', fontWeight: '800', fontSize: hp('2.2%'), marginTop: hp('2%'), textAlign: 'center' }}>
+                            <Text style={{ color: colors.text, fontWeight: '800', fontSize: hp('2.2%'), marginTop: hp('2%'), textAlign: 'center' }}>
                                 No events yet
                             </Text>
                             <Text style={{ color: isDark ? '#444' : '#999', fontSize: hp('1.5%'), textAlign: 'center', marginTop: hp('1%'), lineHeight: hp('2.2%') }}>
@@ -278,7 +395,7 @@ export default function InboxScreen() {
                             keyExtractor={(item) => item._id}
                             renderItem={renderEvent}
                             showsVerticalScrollIndicator={false}
-                            contentContainerStyle={{ paddingBottom: hp('4%'), paddingTop: hp('0.5%') }}
+                            contentContainerStyle={{ paddingBottom: hp('10%'), paddingTop: hp('0.5%') }}
                             refreshControl={
                                 <RefreshControl
                                     refreshing={refreshing}
@@ -292,7 +409,31 @@ export default function InboxScreen() {
                 </View>
             </SafeAreaView>
 
-            {/* ── Full Event Detail Modal ── */}
+            {/* FAB — Add Manual Event */}
+            <TouchableOpacity
+                onPress={() => setShowCreateModal(true)}
+                style={{
+                    position: 'absolute',
+                    bottom: hp('4%'),
+                    right: wp('5%'),
+                    width: wp('14%'),
+                    height: wp('14%'),
+                    borderRadius: 999,
+                    backgroundColor: ACCENT,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: ACCENT,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 12,
+                    elevation: 8,
+                }}
+                activeOpacity={0.85}
+            >
+                <Plus size={hp('2.8%')} color="#000" strokeWidth={3} />
+            </TouchableOpacity>
+
+            {/* ── Event Detail Modal ── */}
             <Modal
                 visible={!!selectedEvent}
                 animationType="slide"
@@ -301,11 +442,11 @@ export default function InboxScreen() {
             >
                 <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
                     <View style={{
-                        backgroundColor: isDark ? '#0D0D0D' : '#FFFFFF',
+                        backgroundColor: colors.sheet,
                         borderTopLeftRadius: 24,
                         borderTopRightRadius: 24,
                         borderWidth: 1,
-                        borderColor: isDark ? '#1E1E1E' : '#EEE',
+                        borderColor: colors.border,
                         maxHeight: hp('85%'),
                     }}>
                         {selectedEvent && (
@@ -313,28 +454,26 @@ export default function InboxScreen() {
                                 <View style={{ height: 4, backgroundColor: selectedEvent.color || ACCENT, borderTopLeftRadius: 24, borderTopRightRadius: 24 }} />
 
                                 <ScrollView contentContainerStyle={{ padding: wp('6%') }} showsVerticalScrollIndicator={false}>
-                                    {/* Close */}
-                                    <TouchableOpacity
-                                        onPress={() => setSelectedEvent(null)}
-                                        style={{ 
-                                            alignSelf: 'flex-end', 
-                                            width: wp('8%'), 
-                                            height: wp('8%'), 
-                                            backgroundColor: isDark ? '#1A1A1A' : '#F5F5F7', 
-                                            borderRadius: 999, 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center', 
-                                            marginBottom: hp('1.5%') 
-                                        }}
-                                    >
-                                        <X color={isDark ? "#666" : "#AAA"} size={hp('2%')} />
-                                    </TouchableOpacity>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: hp('1.5%') }}>
+                                        <TouchableOpacity
+                                            onPress={() => handleDelete(selectedEvent._id)}
+                                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}
+                                        >
+                                            <Trash2 size={hp('1.8%')} color="#EF4444" />
+                                            <Text style={{ color: '#EF4444', fontSize: hp('1.4%'), fontWeight: '700' }}>Delete</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => setSelectedEvent(null)}
+                                            style={{ width: wp('8%'), height: wp('8%'), backgroundColor: isDark ? '#1A1A1A' : '#F5F5F7', borderRadius: 999, alignItems: 'center', justifyContent: 'center' }}
+                                        >
+                                            <X color={isDark ? "#666" : "#AAA"} size={hp('2%')} />
+                                        </TouchableOpacity>
+                                    </View>
 
-                                    {/* Icon + Title */}
                                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: wp('3%'), marginBottom: hp('2%') }}>
                                         <Text style={{ fontSize: hp('5%') }}>{selectedEvent.icon}</Text>
                                         <View style={{ flex: 1 }}>
-                                            <Text style={{ color: isDark ? '#fff' : '#000', fontWeight: '900', fontSize: hp('2.5%'), lineHeight: hp('3.2%') }}>
+                                            <Text style={{ color: colors.text, fontWeight: '900', fontSize: hp('2.5%'), lineHeight: hp('3.2%') }}>
                                                 {selectedEvent.title}
                                             </Text>
                                             {selectedEvent.badge === 'LIVE' && (
@@ -351,16 +490,15 @@ export default function InboxScreen() {
                                         </Text>
                                     ) : null}
 
-                                    <View style={{ height: 1, backgroundColor: isDark ? '#1E1E1E' : '#EEE', marginBottom: hp('2.5%') }} />
+                                    <View style={{ height: 1, backgroundColor: colors.border, marginBottom: hp('2.5%') }} />
 
-                                    {/* Date */}
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp('3%'), marginBottom: hp('2%') }}>
                                         <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: isDark ? '#161616' : '#F5F5F7', alignItems: 'center', justifyContent: 'center' }}>
                                             <Calendar size={hp('2%')} color={ACCENT} />
                                         </View>
                                         <View>
-                                            <Text style={{ color: isDark ? '#555' : '#AAA', fontSize: hp('1.2%'), marginBottom: 2 }}>DATE & TIME</Text>
-                                            <Text style={{ color: isDark ? '#fff' : '#000', fontWeight: '700', fontSize: hp('1.8%') }}>
+                                            <Text style={{ color: colors.subtext, fontSize: hp('1.2%'), marginBottom: 2 }}>DATE & TIME</Text>
+                                            <Text style={{ color: colors.text, fontWeight: '700', fontSize: hp('1.8%') }}>
                                                 {new Date(selectedEvent.date).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
                                             </Text>
                                             <Text style={{ color: ACCENT, fontSize: hp('1.5%'), marginTop: 2 }}>
@@ -369,28 +507,26 @@ export default function InboxScreen() {
                                         </View>
                                     </View>
 
-                                    {/* Location */}
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp('3%'), marginBottom: hp('2%') }}>
                                         <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: isDark ? '#161616' : '#F5F5F7', alignItems: 'center', justifyContent: 'center' }}>
                                             <MapPin size={hp('2%')} color={ACCENT} />
                                         </View>
                                         <View>
-                                            <Text style={{ color: isDark ? '#555' : '#AAA', fontSize: hp('1.2%'), marginBottom: 2 }}>LOCATION</Text>
-                                            <Text style={{ color: selectedEvent.location !== 'TBD' ? (isDark ? '#fff' : '#000') : (isDark ? '#444' : '#CCC'), fontWeight: '600', fontSize: hp('1.8%') }}>
+                                            <Text style={{ color: colors.subtext, fontSize: hp('1.2%'), marginBottom: 2 }}>LOCATION</Text>
+                                            <Text style={{ color: selectedEvent.location !== 'TBD' ? colors.text : (isDark ? '#444' : '#CCC'), fontWeight: '600', fontSize: hp('1.8%') }}>
                                                 {selectedEvent.location}
                                             </Text>
                                         </View>
                                     </View>
 
-                                    <View style={{ height: 1, backgroundColor: isDark ? '#1E1E1E' : '#EEE', marginBottom: hp('2.5%') }} />
+                                    <View style={{ height: 1, backgroundColor: colors.border, marginBottom: hp('2.5%') }} />
 
-                                    {/* Source */}
                                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: wp('3%') }}>
                                         <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: isDark ? '#161616' : '#F5F5F7', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Mail size={hp('2%')} color={isDark ? "#555" : "#AAA"} />
+                                            <Mail size={hp('2%')} color={colors.subtext} />
                                         </View>
                                         <View style={{ flex: 1 }}>
-                                            <Text style={{ color: isDark ? '#555' : '#AAA', fontSize: hp('1.2%'), marginBottom: 2 }}>FROM</Text>
+                                            <Text style={{ color: colors.subtext, fontSize: hp('1.2%'), marginBottom: 2 }}>FROM</Text>
                                             <Text style={{ color: isDark ? '#888' : '#555', fontSize: hp('1.6%') }}>{selectedEvent.sourceFrom || '—'}</Text>
                                             <Text style={{ color: isDark ? '#444' : '#888', fontSize: hp('1.4%'), marginTop: 4 }} numberOfLines={3}>
                                                 {selectedEvent.sourceSubject}
@@ -402,6 +538,193 @@ export default function InboxScreen() {
                                 </ScrollView>
                             </>
                         )}
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ── Category Mute Sheet ── */}
+            <Modal
+                visible={showMuteSheet}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setShowMuteSheet(false)}
+            >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
+                    <View style={{
+                        backgroundColor: colors.sheet,
+                        borderTopLeftRadius: 24,
+                        borderTopRightRadius: 24,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        padding: wp('6%'),
+                    }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: hp('2.5%') }}>
+                            <View>
+                                <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>Category Filters</Text>
+                                <Text style={{ color: colors.subtext, fontSize: 12, marginTop: 2 }}>Muted categories won't appear in your inbox</Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setShowMuteSheet(false)}
+                                style={{ width: wp('8%'), height: wp('8%'), backgroundColor: isDark ? '#1A1A1A' : '#F0F0F0', borderRadius: 999, alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <X color={isDark ? "#666" : "#AAA"} size={hp('2%')} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {Object.entries(CATEGORY_META).map(([key, meta]) => {
+                            const isMuted = mutedCategories.includes(key);
+                            return (
+                                <View
+                                    key={key}
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        paddingVertical: hp('1.5%'),
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: colors.border,
+                                    }}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                        <Text style={{ fontSize: 20 }}>{meta.icon}</Text>
+                                        <Text style={{ color: isMuted ? colors.subtext : colors.text, fontWeight: '600', fontSize: 15 }}>
+                                            {meta.label}
+                                        </Text>
+                                        {isMuted && (
+                                            <Text style={{ color: '#555', fontSize: 11, fontWeight: '700' }}>MUTED</Text>
+                                        )}
+                                    </View>
+                                    <Switch
+                                        value={!isMuted}
+                                        onValueChange={() => handleToggleMute(key)}
+                                        disabled={savingPrefs}
+                                        trackColor={{ false: isDark ? '#333' : '#DDD', true: ACCENT }}
+                                        thumbColor={isMuted ? (isDark ? '#555' : '#BBB') : '#000'}
+                                    />
+                                </View>
+                            );
+                        })}
+
+                        <View style={{ height: hp('2%') }} />
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ── Create Manual Event Modal ── */}
+            <Modal
+                visible={showCreateModal}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setShowCreateModal(false)}
+            >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
+                    <View style={{
+                        backgroundColor: colors.sheet,
+                        borderTopLeftRadius: 24,
+                        borderTopRightRadius: 24,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        maxHeight: hp('90%'),
+                    }}>
+                        <ScrollView contentContainerStyle={{ padding: wp('6%') }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: hp('2.5%') }}>
+                                <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>Add Event</Text>
+                                <TouchableOpacity
+                                    onPress={() => setShowCreateModal(false)}
+                                    style={{ width: wp('8%'), height: wp('8%'), backgroundColor: isDark ? '#1A1A1A' : '#F0F0F0', borderRadius: 999, alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                    <X color={isDark ? "#666" : "#AAA"} size={hp('2%')} />
+                                </TouchableOpacity>
+                            </View>
+
+                            {[
+                                { label: 'Title *', value: newTitle, setter: setNewTitle, placeholder: 'e.g. Placement Talk by Google' },
+                                { label: 'Description', value: newDescription, setter: setNewDescription, placeholder: 'Optional details...' },
+                                { label: 'Date * (YYYY-MM-DD)', value: newDate, setter: setNewDate, placeholder: '2025-08-20' },
+                                { label: 'Time *', value: newTimeDisplay, setter: setNewTimeDisplay, placeholder: 'e.g. 5:00 PM - 7:00 PM' },
+                                { label: 'Location', value: newLocation, setter: setNewLocation, placeholder: 'e.g. Auditorium (leave blank for TBD)' },
+                            ].map(field => (
+                                <View key={field.label} style={{ marginBottom: hp('1.8%') }}>
+                                    <Text style={{ color: colors.subtext, fontSize: 12, fontWeight: '700', marginBottom: 6, letterSpacing: 0.5 }}>
+                                        {field.label.toUpperCase()}
+                                    </Text>
+                                    <TextInput
+                                        value={field.value}
+                                        onChangeText={field.setter}
+                                        placeholder={field.placeholder}
+                                        placeholderTextColor={isDark ? '#444' : '#BBB'}
+                                        style={{
+                                            backgroundColor: colors.input,
+                                            color: colors.text,
+                                            borderRadius: 12,
+                                            padding: hp('1.6%'),
+                                            fontSize: 15,
+                                            borderWidth: 1,
+                                            borderColor: colors.border,
+                                        }}
+                                    />
+                                </View>
+                            ))}
+
+                            {/* Category picker */}
+                            <View style={{ marginBottom: hp('2.5%') }}>
+                                <Text style={{ color: colors.subtext, fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 0.5 }}>CATEGORY</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                    {Object.entries(CATEGORY_META).map(([key, meta]) => (
+                                        <TouchableOpacity
+                                            key={key}
+                                            onPress={() => setNewCategory(key)}
+                                            style={{
+                                                flexDirection: 'row',
+                                                alignItems: 'center',
+                                                gap: 6,
+                                                paddingHorizontal: 14,
+                                                paddingVertical: 8,
+                                                borderRadius: 20,
+                                                borderWidth: 1,
+                                                marginRight: 8,
+                                                backgroundColor: newCategory === key ? ACCENT : 'transparent',
+                                                borderColor: newCategory === key ? ACCENT : colors.border,
+                                            }}
+                                        >
+                                            <Text style={{ fontSize: 14 }}>{meta.icon}</Text>
+                                            <Text style={{ color: newCategory === key ? '#000' : colors.subtext, fontWeight: '700', fontSize: 13 }}>
+                                                {meta.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={handleCreateEvent}
+                                disabled={creating}
+                                activeOpacity={0.85}
+                                style={{
+                                    backgroundColor: ACCENT,
+                                    borderRadius: 14,
+                                    padding: hp('1.8%'),
+                                    alignItems: 'center',
+                                    marginBottom: hp('1.5%'),
+                                    opacity: creating ? 0.7 : 1,
+                                }}
+                            >
+                                {creating
+                                    ? <ActivityIndicator size="small" color="#000" />
+                                    : <Text style={{ color: '#000', fontWeight: '900', fontSize: 15, letterSpacing: 1 }}>ADD EVENT</Text>
+                                }
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => setShowCreateModal(false)}
+                                activeOpacity={0.7}
+                                style={{ alignItems: 'center', padding: hp('1%') }}
+                            >
+                                <Text style={{ color: '#555', fontWeight: '600' }}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <View style={{ height: hp('2%') }} />
+                        </ScrollView>
                     </View>
                 </View>
             </Modal>
