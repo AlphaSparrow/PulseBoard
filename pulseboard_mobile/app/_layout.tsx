@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { registerForPushNotifications } from "../src/services/notifications";
 import api from "../src/api/client";
+import { ThemeProvider } from "../src/context/ThemeContext";
 
 export default function RootLayout() {
   useEffect(() => {
@@ -18,14 +19,14 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
-      <StatusBar style="light" backgroundColor="#000" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="auth" />
-        <Stack.Screen name="tabs" />
-        <Stack.Screen name="calendar" />
-      </Stack>
-    </>
+    <ThemeProvider>
+       <StatusBar style="light" />
+       <Stack screenOptions={{ headerShown: false }}>
+         <Stack.Screen name="index" />
+         <Stack.Screen name="auth" />
+         <Stack.Screen name="tabs" />
+         <Stack.Screen name="calendar" />
+       </Stack>
+    </ThemeProvider>
   );
 }

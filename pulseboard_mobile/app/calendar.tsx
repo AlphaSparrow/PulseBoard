@@ -38,6 +38,7 @@ import {
   getMockCalendarEvents,
   CalendarEvent,
 } from "../src/api/calendar.api";
+import { useTheme } from "../src/context/ThemeContext";
 
 // ═══════════════════════════════════════════════
 // CONSTANTS
@@ -56,41 +57,52 @@ const CATEGORY_COLORS: Record<
   { bg: string; border: string; text: string; gradient: [string, string] }
 > = {
   interviews: {
-    bg: "rgba(59,130,246,0.15)", border: "#3B82F6", text: "#93C5FD",
+    bg: "rgba(59,130,246,0.15)", border: "#3B82F6", text: "#3B82F6",
     gradient: ["rgba(59,130,246,0.25)", "rgba(59,130,246,0.05)"],
   },
   fests: {
-    bg: "rgba(168,85,247,0.15)", border: "#A855F7", text: "#D8B4FE",
+    bg: "rgba(168,85,247,0.15)", border: "#A855F7", text: "#A855F7",
     gradient: ["rgba(168,85,247,0.25)", "rgba(168,85,247,0.05)"],
   },
   academics: {
-    bg: "rgba(34,197,94,0.15)", border: "#22C55E", text: "#86EFAC",
+    bg: "rgba(34,197,94,0.15)", border: "#22C55E", text: "#22C55E",
     gradient: ["rgba(34,197,94,0.25)", "rgba(34,197,94,0.05)"],
   },
   admin: {
-    bg: "rgba(249,115,22,0.15)", border: "#F97316", text: "#FDBA74",
+    bg: "rgba(249,115,22,0.15)", border: "#F97316", text: "#F97316",
     gradient: ["rgba(249,115,22,0.25)", "rgba(249,115,22,0.05)"],
   },
   hostel: {
-    bg: "rgba(236,72,153,0.15)", border: "#EC4899", text: "#F9A8D4",
+    bg: "rgba(236,72,153,0.15)", border: "#EC4899", text: "#EC4899",
     gradient: ["rgba(236,72,153,0.25)", "rgba(236,72,153,0.05)"],
   },
   clubs: {
-    bg: "rgba(20,184,166,0.15)", border: "#14B8A6", text: "#5EEAD4",
+    bg: "rgba(20,184,166,0.15)", border: "#14B8A6", text: "#14B8A6",
     gradient: ["rgba(20,184,166,0.25)", "rgba(20,184,166,0.05)"],
   },
   placements: {
-    bg: "rgba(234,179,8,0.15)", border: "#EAB308", text: "#FDE047",
+    bg: "rgba(234,179,8,0.15)", border: "#EAB308", text: "#EAB308",
     gradient: ["rgba(234,179,8,0.25)", "rgba(234,179,8,0.05)"],
   },
   miscellaneous: {
-    bg: "rgba(161,161,170,0.15)", border: "#A1A1AA", text: "#D4D4D8",
+    bg: "rgba(161,161,170,0.15)", border: "#A1A1AA", text: "#71717A",
     gradient: ["rgba(161,161,170,0.25)", "rgba(161,161,170,0.05)"],
   },
 };
 
-const getCategoryStyle = (cat: string) =>
-  CATEGORY_COLORS[cat.toLowerCase()] || CATEGORY_COLORS.miscellaneous;
+const getCategoryStyle = (cat: string, isDark: boolean) => {
+  const s = CATEGORY_COLORS[cat.toLowerCase()] || CATEGORY_COLORS.miscellaneous;
+  if (isDark) {
+      // Lighten text for dark mode
+      const darkText = {
+          interviews: "#93C5FD", fests: "#D8B4FE", academics: "#86EFAC", 
+          admin: "#FDBA74", hostel: "#F9A8D4", clubs: "#5EEAD4", 
+          placements: "#FDE047", miscellaneous: "#D4D4D8"
+      }[cat.toLowerCase()] || "#D4D4D8";
+      return { ...s, text: darkText };
+  }
+  return s;
+}
 
 // ═══════════════════════════════════════════════
 // HELPERS
@@ -138,19 +150,20 @@ const MONTH_NAMES = [
 // ═══════════════════════════════════════════════
 const CategoryChip = React.memo(
   ({ category, isActive, onPress }: { category: string; isActive: boolean; onPress: () => void }) => {
-    const s = getCategoryStyle(category);
+    const { isDark } = useTheme();
+    const s = getCategoryStyle(category, isDark);
     return (
       <TouchableOpacity activeOpacity={0.7} onPress={onPress}
         style={{
           flexDirection: "row", alignItems: "center",
           paddingHorizontal: wp("3.5%"), paddingVertical: hp("0.8%"),
           borderRadius: 20, marginRight: wp("2%"),
-          backgroundColor: isActive ? s.bg : "#0A0A0A",
-          borderWidth: 1, borderColor: isActive ? s.border : "#1A1A1A",
+          backgroundColor: isActive ? s.bg : (isDark ? "#0A0A0A" : "#F5F5F7"),
+          borderWidth: 1, borderColor: isActive ? s.border : (isDark ? "#1A1A1A" : "#E5E5E5"),
         }}
       >
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: s.border, marginRight: wp("2%") }} />
-        <Text style={{ color: isActive ? s.text : "#52525B", fontSize: hp("1.3%"), fontWeight: "700", textTransform: "capitalize" }}>
+        <Text style={{ color: isActive ? s.text : (isDark ? "#52525B" : "#A1A1A1"), fontSize: hp("1.3%"), fontWeight: "700", textTransform: "capitalize" }}>
           {category}
         </Text>
       </TouchableOpacity>
@@ -161,25 +174,28 @@ const CategoryChip = React.memo(
 const DayPill = React.memo(
   ({ date, isSelected, isToday, hasEvents, onPress }: {
     date: Date; isSelected: boolean; isToday: boolean; hasEvents: boolean; onPress: () => void;
-  }) => (
-    <TouchableOpacity activeOpacity={0.6} onPress={onPress}
-      style={{
-        flex: 1, alignItems: "center", paddingVertical: hp("1.2%"), borderRadius: 16,
-        backgroundColor: isSelected ? THEME_ACCENT : isToday ? "rgba(204,249,0,0.08)" : "transparent",
-        borderWidth: isToday && !isSelected ? 1 : 0, borderColor: "rgba(204,249,0,0.2)",
-      }}
-    >
-      <Text style={{ color: isSelected ? "#050505" : "#52525B", fontSize: hp("1.1%"), fontWeight: "900", letterSpacing: 1, marginBottom: 4 }}>
-        {DAY_NAMES[date.getDay() === 0 ? 6 : date.getDay() - 1]}
-      </Text>
-      <Text style={{ color: isSelected ? "#050505" : isToday ? THEME_ACCENT : "white", fontSize: hp("2.2%"), fontWeight: "900" }}>
-        {date.getDate()}
-      </Text>
-      {hasEvents && !isSelected && (
-        <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: THEME_ACCENT, marginTop: 4 }} />
-      )}
-    </TouchableOpacity>
-  )
+  }) => {
+    const { isDark } = useTheme();
+    return (
+      <TouchableOpacity activeOpacity={0.6} onPress={onPress}
+        style={{
+          flex: 1, alignItems: "center", paddingVertical: hp("1.2%"), borderRadius: 16,
+          backgroundColor: isSelected ? THEME_ACCENT : isToday ? "rgba(204,249,0,0.08)" : "transparent",
+          borderWidth: isToday && !isSelected ? 1 : 0, borderColor: "rgba(204,249,0,0.2)",
+        }}
+      >
+        <Text style={{ color: isSelected ? "#050505" : (isDark ? "#52525B" : "#A1A1A1"), fontSize: hp("1.1%"), fontWeight: "900", letterSpacing: 1, marginBottom: 4 }}>
+          {DAY_NAMES[date.getDay() === 0 ? 6 : date.getDay() - 1]}
+        </Text>
+        <Text style={{ color: isSelected ? "#050505" : isToday ? THEME_ACCENT : (isDark ? "white" : "black"), fontSize: hp("2.2%"), fontWeight: "900" }}>
+          {date.getDate()}
+        </Text>
+        {hasEvents && !isSelected && (
+          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: THEME_ACCENT, marginTop: 4 }} />
+        )}
+      </TouchableOpacity>
+    );
+  }
 );
 
 /** Timeline event block */
@@ -188,7 +204,8 @@ const EventBlock = React.memo(
     event: CalendarEvent; top: number; height: number;
     left: number; width: number; index: number; onPress: () => void;
   }) => {
-    const s = getCategoryStyle(event.category);
+    const { isDark } = useTheme();
+    const s = getCategoryStyle(event.category, isDark);
     const isShort = height < 55;
     const isNarrow = width < 90;
 
@@ -262,7 +279,8 @@ const OverflowBadge = React.memo(
 /** Event card in the list view below timeline */
 const EventCard = React.memo(
   ({ event, index, onPress }: { event: CalendarEvent; index: number; onPress: () => void }) => {
-    const s = getCategoryStyle(event.category);
+    const { isDark } = useTheme();
+    const s = getCategoryStyle(event.category, isDark);
     const startTime = formatTime(new Date(event.start));
     const endTime = formatTime(new Date(event.end));
 
@@ -274,9 +292,11 @@ const EventCard = React.memo(
       >
         <TouchableOpacity activeOpacity={0.8} onPress={onPress}
           style={{
-            backgroundColor: "#0D0D0D", borderRadius: 16,
+            backgroundColor: isDark ? "#0D0D0D" : "#FFFFFF", 
+            borderRadius: 16,
             marginBottom: hp("1.2%"), overflow: "hidden",
-            borderWidth: 1, borderColor: "#1A1A1A",
+            borderWidth: 1, borderColor: isDark ? "#1A1A1A" : "#E5E5E5",
+            ...(isDark ? {} : { elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 })
           }}
         >
           {/* Colored top accent */}
@@ -287,7 +307,7 @@ const EventCard = React.memo(
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: hp("0.8%") }}>
               <Text style={{ fontSize: hp("2%"), marginRight: wp("2%") }}>{event.icon || "📅"}</Text>
               <View style={{ flex: 1 }}>
-                <Text numberOfLines={2} style={{ color: "#fff", fontWeight: "800", fontSize: hp("1.7%") }}>
+                <Text numberOfLines={2} style={{ color: isDark ? "#fff" : "#000", fontWeight: "800", fontSize: hp("1.7%") }}>
                   {event.title}
                 </Text>
               </View>
@@ -311,8 +331,8 @@ const EventCard = React.memo(
               </View>
               {event.location && event.location !== "TBD" && (
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <MapPin size={hp("1.5%")} color="#666" />
-                  <Text numberOfLines={1} style={{ color: "#666", fontSize: hp("1.3%"), marginLeft: 4 }}>
+                  <MapPin size={hp("1.5%")} color={isDark ? "#666" : "#AAA"} />
+                  <Text numberOfLines={1} style={{ color: isDark ? "#666" : "#AAA", fontSize: hp("1.3%"), marginLeft: 4 }}>
                     {event.location}
                   </Text>
                 </View>
@@ -329,8 +349,9 @@ const EventCard = React.memo(
 const EventDetailModal = ({
   event, visible, onClose,
 }: { event: CalendarEvent | null; visible: boolean; onClose: () => void }) => {
+  const { isDark } = useTheme();
   if (!event) return null;
-  const s = getCategoryStyle(event.category);
+  const s = getCategoryStyle(event.category, isDark);
   const startTime = formatTime(new Date(event.start));
   const endTime = formatTime(new Date(event.end));
   const dateStr = new Date(event.start).toLocaleDateString("en-US", {
@@ -341,8 +362,9 @@ const EventDetailModal = ({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" }}>
         <View style={{
-          backgroundColor: "#0A0A0A", borderTopLeftRadius: 28, borderTopRightRadius: 28,
-          padding: wp("6%"), paddingBottom: hp("5%"), borderWidth: 1, borderColor: "#1A1A1A",
+          backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF", 
+          borderTopLeftRadius: 28, borderTopRightRadius: 28,
+          padding: wp("6%"), paddingBottom: hp("5%"), borderWidth: 1, borderColor: isDark ? "#1A1A1A" : "#E5E5E5",
         }}>
           {/* Header */}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: hp("2%") }}>
@@ -358,37 +380,37 @@ const EventDetailModal = ({
                   </Text>
                 </View>
               </View>
-              <Text style={{ color: "white", fontSize: hp("2.4%"), fontWeight: "900", letterSpacing: -0.3 }}>
+              <Text style={{ color: isDark ? "white" : "black", fontSize: hp("2.4%"), fontWeight: "900", letterSpacing: -0.3 }}>
                 {event.title}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose}
-              style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: "#1A1A1A", alignItems: "center", justifyContent: "center" }}
+              style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: isDark ? "#1A1A1A" : "#F5F5F7", alignItems: "center", justifyContent: "center" }}
             >
-              <X color="#666" size={18} />
+              <X color={isDark ? "#666" : "#AAA"} size={18} />
             </TouchableOpacity>
           </View>
 
           {/* Details */}
-          <View style={{ backgroundColor: "#111", borderRadius: 16, padding: wp("4%"), borderWidth: 1, borderColor: "#1E1E1E" }}>
-            <DetailRow icon={CalendarIcon} label="Date" value={dateStr} color={s.border} />
-            <DetailRow icon={Clock} label="Time" color={s.border}
+          <View style={{ backgroundColor: isDark ? "#111" : "#FAFAFA", borderRadius: 16, padding: wp("4%"), borderWidth: 1, borderColor: isDark ? "#1E1E1E" : "#EEE" }}>
+            <DetailRow icon={CalendarIcon} label="Date" value={dateStr} color={s.border} isDark={isDark} />
+            <DetailRow icon={Clock} label="Time" color={s.border} isDark={isDark}
               value={event.timeDisplay && event.timeDisplay !== "TBD" ? event.timeDisplay : `${startTime} – ${endTime}`}
             />
             {event.location && event.location !== "TBD" && (
-              <DetailRow icon={MapPin} label="Location" value={event.location} color={s.border} />
+              <DetailRow icon={MapPin} label="Location" value={event.location} color={s.border} isDark={isDark} />
             )}
             {event.sourceFrom ? (
-              <DetailRow icon={Mail} label="Source" value={event.sourceFrom} color={s.border} isLast />
+              <DetailRow icon={Mail} label="Source" value={event.sourceFrom} color={s.border} isDark={isDark} isLast />
             ) : null}
           </View>
 
           {event.description ? (
             <View style={{ marginTop: hp("2%") }}>
-              <Text style={{ color: "#555", fontSize: hp("1.2%"), fontWeight: "700", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+              <Text style={{ color: isDark ? "#555" : "#AAA", fontSize: hp("1.2%"), fontWeight: "700", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
                 Description
               </Text>
-              <Text style={{ color: "#999", fontSize: hp("1.4%"), fontWeight: "500", lineHeight: hp("2.2%") }}>
+              <Text style={{ color: isDark ? "#999" : "#666", fontSize: hp("1.4%"), fontWeight: "500", lineHeight: hp("2.2%") }}>
                 {event.description}
               </Text>
             </View>
@@ -412,16 +434,16 @@ const EventDetailModal = ({
   );
 };
 
-const DetailRow = ({ icon: Icon, label, value, color, isLast }: {
-  icon: any; label: string; value: string; color: string; isLast?: boolean;
+const DetailRow = ({ icon: Icon, label, value, color, isDark, isLast }: {
+  icon: any; label: string; value: string; color: string; isDark: boolean; isLast?: boolean;
 }) => (
   <View style={{ flexDirection: "row", alignItems: "center", marginBottom: isLast ? 0 : hp("1.5%") }}>
     <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${color}15`, alignItems: "center", justifyContent: "center" }}>
       <Icon color={color} size={16} />
     </View>
     <View style={{ marginLeft: 12, flex: 1 }}>
-      <Text style={{ color: "#666", fontSize: hp("1.1%"), fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 }}>{label}</Text>
-      <Text numberOfLines={2} style={{ color: "white", fontSize: hp("1.5%"), fontWeight: "700", marginTop: 2 }}>{value}</Text>
+      <Text style={{ color: isDark ? "#666" : "#AAA", fontSize: hp("1.1%"), fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 }}>{label}</Text>
+      <Text numberOfLines={2} style={{ color: isDark ? "white" : "black", fontSize: hp("1.5%"), fontWeight: "700", marginTop: 2 }}>{value}</Text>
     </View>
   </View>
 );
@@ -430,6 +452,7 @@ const DetailRow = ({ icon: Icon, label, value, color, isLast }: {
 // MAIN SCREEN
 // ═══════════════════════════════════════════════
 export default function CalendarScreen() {
+  const { isDark } = useTheme();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -541,7 +564,6 @@ export default function CalendarScreen() {
       }
     }
 
-    // Calculate scrollable area width — expand beyond screen when needed
     const colWidth = totalColumns <= 0 ? EVENT_AREA_BASE : Math.max(MIN_COL_WIDTH, EVENT_AREA_BASE / totalColumns);
     const areaWidth = Math.max(EVENT_AREA_BASE, totalColumns * colWidth);
 
@@ -570,16 +592,13 @@ export default function CalendarScreen() {
   }, []);
   const isToday = isSameDay(selectedDate, now);
 
-  // Auto-scroll timeline to current hour (or first event) on mount / date change
   useEffect(() => {
     if (viewMode === "timeline" && scrollRef.current) {
       const timer = setTimeout(() => {
         if (isToday) {
-          // Scroll to current time minus a bit of padding
           const scrollTo = Math.max(currentTimeTop - HOUR_HEIGHT, 0);
           scrollRef.current?.scrollTo({ y: scrollTo, animated: true });
         } else if (sortedDayEvents.length > 0) {
-          // Scroll to the first event of the day
           const firstStart = new Date(sortedDayEvents[0].start);
           const firstHour = firstStart.getHours() + firstStart.getMinutes() / 60;
           const scrollTo = Math.max((firstHour - 6) * HOUR_HEIGHT - HOUR_HEIGHT / 2, 0);
@@ -590,15 +609,14 @@ export default function CalendarScreen() {
     }
   }, [viewMode, selectedDate, isToday, loading]);
 
-  // Sort events for list view by start time
   const sortedDayEvents = useMemo(
     () => [...eventsForDay].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()),
     [eventsForDay]
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#050505" }}>
-      <StatusBar barStyle="light-content" backgroundColor="#050505" />
+    <View style={{ flex: 1, backgroundColor: isDark ? "#050505" : "#FFFFFF" }}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <SafeAreaView style={{ flex: 1, paddingTop: Platform.OS === "android" ? hp("1%") : 0 }}>
         {/* ═══ HEADER ═══ */}
         <MotiView
@@ -612,24 +630,24 @@ export default function CalendarScreen() {
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <TouchableOpacity onPress={() => router.back()}
                   style={{
-                    width: wp("10%"), height: wp("10%"), backgroundColor: "#121212",
+                    width: wp("10%"), height: wp("10%"), backgroundColor: isDark ? "#121212" : "#F5F5F7",
                     borderRadius: 12, alignItems: "center", justifyContent: "center",
-                    borderWidth: 1, borderColor: "#222", marginRight: wp("3%"),
+                    borderWidth: 1, borderColor: isDark ? "#222" : "#EEE", marginRight: wp("3%"),
                   }}
                 >
-                  <ArrowLeft color="white" size={hp("2%")} />
+                  <ArrowLeft color={isDark ? "white" : "black"} size={hp("2%")} />
                 </TouchableOpacity>
                 <CalendarIcon color={THEME_ACCENT} size={hp("2.8%")} strokeWidth={2.5} />
-                <Text style={{ color: "white", fontSize: hp("2.8%"), fontWeight: "900", letterSpacing: -0.5, marginLeft: wp("2.5%") }}>
+                <Text style={{ color: isDark ? "white" : "black", fontSize: hp("2.8%"), fontWeight: "900", letterSpacing: -0.5, marginLeft: wp("2.5%") }}>
                   My Calendar
                 </Text>
               </View>
 
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <TouchableOpacity activeOpacity={0.7} onPress={handleRefresh} disabled={refreshing}
-                  style={{ padding: hp("0.8%"), backgroundColor: "#121212", borderRadius: 10, marginRight: 8, borderWidth: 1, borderColor: "#222" }}
+                  style={{ padding: hp("0.8%"), backgroundColor: isDark ? "#121212" : "#F5F5F7", borderRadius: 10, marginRight: 8, borderWidth: 1, borderColor: isDark ? "#222" : "#EEE" }}
                 >
-                  <RefreshCw color={refreshing ? THEME_ACCENT : "#666"} size={hp("1.8%")} />
+                  <RefreshCw color={refreshing ? THEME_ACCENT : (isDark ? "#666" : "#AAA")} size={hp("1.8%")} />
                 </TouchableOpacity>
                 <TouchableOpacity activeOpacity={0.7} onPress={() => setUseMock(!useMock)}
                   style={{
@@ -650,7 +668,7 @@ export default function CalendarScreen() {
             {/* Month + Nav */}
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: hp("0.5%") }}>
               <View>
-                <Text style={{ color: "#737373", fontSize: hp("1.3%"), fontWeight: "700", letterSpacing: 2, textTransform: "uppercase" }}>
+                <Text style={{ color: isDark ? "#737373" : "#AAA", fontSize: hp("1.3%"), fontWeight: "700", letterSpacing: 2, textTransform: "uppercase" }}>
                   {MONTH_NAMES[selectedDate.getMonth()]} {selectedDate.getFullYear()}
                 </Text>
                 <Text style={{ color: THEME_ACCENT, fontSize: hp("1.5%"), fontWeight: "800", marginTop: 2 }}>
@@ -668,14 +686,14 @@ export default function CalendarScreen() {
                   <Text style={{ color: THEME_ACCENT, fontSize: hp("1.1%"), fontWeight: "900", letterSpacing: 1 }}>TODAY</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={goToPrevWeek}
-                  style={{ padding: hp("0.8%"), backgroundColor: "#121212", borderRadius: 10, marginRight: 6 }}
+                  style={{ padding: hp("0.8%"), backgroundColor: isDark ? "#121212" : "#F5F5F7", borderRadius: 10, marginRight: 6 }}
                 >
-                  <ChevronLeft color="#666" size={hp("2%")} />
+                  <ChevronLeft color={isDark ? "#666" : "#AAA"} size={hp("2%")} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={goToNextWeek}
-                  style={{ padding: hp("0.8%"), backgroundColor: "#121212", borderRadius: 10 }}
+                  style={{ padding: hp("0.8%"), backgroundColor: isDark ? "#121212" : "#F5F5F7", borderRadius: 10 }}
                 >
-                  <ChevronRight color="#666" size={hp("2%")} />
+                  <ChevronRight color={isDark ? "#666" : "#AAA"} size={hp("2%")} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -714,33 +732,33 @@ export default function CalendarScreen() {
                 onPress={() => setViewMode("list")}
                 style={{
                   padding: 8, borderRadius: 10,
-                  backgroundColor: viewMode === "list" ? "rgba(204,249,0,0.15)" : "#0A0A0A",
-                  borderWidth: 1, borderColor: viewMode === "list" ? "rgba(204,249,0,0.3)" : "#1A1A1A",
+                  backgroundColor: viewMode === "list" ? "rgba(204,249,0,0.15)" : (isDark ? "#0A0A0A" : "#F5F5F7"),
+                  borderWidth: 1, borderColor: viewMode === "list" ? "rgba(204,249,0,0.3)" : (isDark ? "#1A1A1A" : "#EEE"),
                 }}
               >
-                <List color={viewMode === "list" ? THEME_ACCENT : "#52525B"} size={hp("1.8%")} />
+                <List color={viewMode === "list" ? THEME_ACCENT : (isDark ? "#52525B" : "#AAA")} size={hp("1.8%")} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setViewMode("timeline")}
                 style={{
                   padding: 8, borderRadius: 10,
-                  backgroundColor: viewMode === "timeline" ? "rgba(204,249,0,0.15)" : "#0A0A0A",
-                  borderWidth: 1, borderColor: viewMode === "timeline" ? "rgba(204,249,0,0.3)" : "#1A1A1A",
+                  backgroundColor: viewMode === "timeline" ? "rgba(204,249,0,0.15)" : (isDark ? "#0A0A0A" : "#F5F5F7"),
+                  borderWidth: 1, borderColor: viewMode === "timeline" ? "rgba(204,249,0,0.3)" : (isDark ? "#1A1A1A" : "#EEE"),
                 }}
               >
-                <LayoutGrid color={viewMode === "timeline" ? THEME_ACCENT : "#52525B"} size={hp("1.8%")} />
+                <LayoutGrid color={viewMode === "timeline" ? THEME_ACCENT : (isDark ? "#52525B" : "#AAA")} size={hp("1.8%")} />
               </TouchableOpacity>
             </View>
           </View>
 
-          <View style={{ height: 1, backgroundColor: "rgba(255,255,255,0.05)" }} />
+          <View style={{ height: 1, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }} />
         </MotiView>
 
         {/* ═══ CONTENT ═══ */}
         {loading ? (
           <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
             <ActivityIndicator size="large" color={THEME_ACCENT} />
-            <Text style={{ color: "#444", marginTop: hp("2%"), fontWeight: "600" }}>Loading events...</Text>
+            <Text style={{ color: isDark ? "#444" : "#AAA", marginTop: hp("2%"), fontWeight: "600" }}>Loading events...</Text>
           </View>
         ) : viewMode === "list" ? (
           /* ── LIST VIEW ── */
@@ -756,10 +774,10 @@ export default function CalendarScreen() {
                 style={{ alignItems: "center", paddingTop: hp("10%") }}
               >
                 <Text style={{ fontSize: 50, marginBottom: 16 }}>📭</Text>
-                <Text style={{ color: "#555", fontSize: hp("1.8%"), fontWeight: "800", marginBottom: 6 }}>
+                <Text style={{ color: isDark ? "#555" : "#AAA", fontSize: hp("1.8%"), fontWeight: "800", marginBottom: 6 }}>
                   No events {getDayLabel(selectedDate).toLowerCase()}
                 </Text>
-                <Text style={{ color: "#333", fontSize: hp("1.3%"), fontWeight: "600", textAlign: "center", lineHeight: hp("2%") }}>
+                <Text style={{ color: isDark ? "#333" : "#CCC", fontSize: hp("1.3%"), fontWeight: "600", textAlign: "center", lineHeight: hp("2%") }}>
                   {useMock ? "No mock events for this day" : "Events from your emails will\nappear here automatically"}
                 </Text>
               </MotiView>
@@ -786,7 +804,7 @@ export default function CalendarScreen() {
               <View style={{ width: TIMELINE_LEFT, zIndex: 5 }}>
                 {HOURS.map((hour) => (
                   <View key={hour} style={{ height: HOUR_HEIGHT, alignItems: "center", justifyContent: "flex-start" }}>
-                    <Text style={{ color: "#3A3A3A", fontSize: hp("1.2%"), fontWeight: "700", fontVariant: ["tabular-nums"] }}>
+                    <Text style={{ color: isDark ? "#3A3A3A" : "#AAA", fontSize: hp("1.2%"), fontWeight: "700", fontVariant: ["tabular-nums"] }}>
                       {hour === 0 ? "12 AM" : hour < 12 ? `${hour} AM` : hour === 12 ? "12 PM" : `${hour - 12} PM`}
                     </Text>
                   </View>
@@ -804,7 +822,7 @@ export default function CalendarScreen() {
                 <View style={{ width: Math.max(eventAreaWidth, EVENT_AREA_BASE), position: "relative" }}>
                   {/* Hour grid lines */}
                   {HOURS.map((hour) => (
-                    <View key={hour} style={{ height: HOUR_HEIGHT, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.04)" }} />
+                    <View key={hour} style={{ height: HOUR_HEIGHT, borderTopWidth: 1, borderTopColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.05)" }} />
                   ))}
 
                   {/* Event blocks */}
@@ -828,14 +846,14 @@ export default function CalendarScreen() {
                       style={{ position: "absolute", top: 4 * HOUR_HEIGHT, left: 0, right: 0, alignItems: "center" }}
                     >
                       <View style={{
-                        backgroundColor: "#0C0C0C", borderRadius: 20, padding: wp("6%"),
-                        alignItems: "center", borderWidth: 1, borderColor: "#1A1A1A", width: wp("70%"),
+                        backgroundColor: isDark ? "#0C0C0C" : "#FAFAFA", borderRadius: 20, padding: wp("6%"),
+                        alignItems: "center", borderWidth: 1, borderColor: isDark ? "#1A1A1A" : "#EEE", width: wp("70%"),
                       }}>
                         <Text style={{ fontSize: 40, marginBottom: 12 }}>📭</Text>
-                        <Text style={{ color: "#555", fontSize: hp("1.6%"), fontWeight: "800", marginBottom: 4 }}>
+                        <Text style={{ color: isDark ? "#555" : "#AAA", fontSize: hp("1.6%"), fontWeight: "800", marginBottom: 4 }}>
                           No events {getDayLabel(selectedDate).toLowerCase()}
                         </Text>
-                        <Text style={{ color: "#333", fontSize: hp("1.2%"), fontWeight: "600", textAlign: "center" }}>
+                        <Text style={{ color: isDark ? "#333" : "#CCC", fontSize: hp("1.2%"), fontWeight: "600", textAlign: "center" }}>
                           {useMock ? "No mock events for this day" : "Events from your emails will appear here automatically"}
                         </Text>
                       </View>
@@ -862,7 +880,7 @@ export default function CalendarScreen() {
               {/* Horizontal scroll hint — subtle gradient fade */}
               {eventAreaWidth > EVENT_AREA_BASE && (
                 <LinearGradient
-                  colors={["transparent", "rgba(5,5,5,0.85)"]}
+                  colors={["transparent", isDark ? "rgba(5,5,5,0.85)" : "rgba(255,255,255,0.85)"]}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                   pointerEvents="none"
                   style={{

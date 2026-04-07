@@ -82,7 +82,9 @@ export default function ClubHomeScreen() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [eventDate, setEventDate] = useState(new Date());
     const [showTimePicker, setShowTimePicker] = useState(false);
+    const [showEndTimePicker, setShowEndTimePicker] = useState(false);
     const [eventTime, setEventTime] = useState(new Date());
+    const [eventEndTime, setEventEndTime] = useState(new Date());
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -162,7 +164,14 @@ export default function ClubHomeScreen() {
             formData.append('color', color);
             formData.append('clubId', String(adminClub?.clubId || 1));
             formData.append('icon', adminClub?.icon || '📅');
-            formData.append('date', eventDate.toISOString());
+            
+            const finalStart = new Date(eventDate);
+            finalStart.setHours(eventTime.getHours(), eventTime.getMinutes(), 0);
+            formData.append('date', finalStart.toISOString());
+            
+            const finalEnd = new Date(eventDate);
+            finalEnd.setHours(eventEndTime.getHours(), eventEndTime.getMinutes(), 0);
+            formData.append('endDate', finalEnd.toISOString());
 
             if (selectedImage) {
                 const filename = selectedImage.split('/').pop() || 'image.jpg';
@@ -177,9 +186,13 @@ export default function ClubHomeScreen() {
             setSelectedImage(null);
             setEventForm({ title: '', location: '', timeDisplay: '', description: '', badge: 'UPCOMING', color: '#EAB308' });
             loadData();
-        } catch (err) { 
+        } catch (err: any) { 
             console.log("Failed to publish:", err);
-            Alert.alert("Error", "Failed to publish event"); 
+            if (err.response?.status === 409) {
+                Alert.alert("Room Conflict", err.response.data?.message || "This room is already booked.");
+            } else {
+                Alert.alert("Error", "Failed to publish event"); 
+            }
         }
         finally { setIsSubmitting(false); }
     };
@@ -315,21 +328,20 @@ export default function ClubHomeScreen() {
                             value={eventForm.description}
                         />
 
+                        <Label text="Date" />
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => setShowDatePicker(true)}
+                            style={{ backgroundColor: '#161618', padding: hp('1.5%'), borderRadius: 10, marginTop: hp('0.5%'), marginBottom: hp('1.5%'), borderWidth: 1, borderColor: '#222', justifyContent: 'center' }}
+                        >
+                            <Text style={{ color: 'white' }}>
+                                {eventDate.getDate().toString().padStart(2, '0')}-{(eventDate.getMonth() + 1).toString().padStart(2, '0')}-{eventDate.getFullYear()}
+                            </Text>
+                        </TouchableOpacity>
+
                         <View style={{ flexDirection: 'row', gap: wp('2.5%') }}>
                             <View style={{ flex: 1 }}>
-                                <Label text="Date" />
-                                <TouchableOpacity
-                                    activeOpacity={0.7}
-                                    onPress={() => setShowDatePicker(true)}
-                                    style={{ backgroundColor: '#161618', padding: hp('1.5%'), borderRadius: 10, marginTop: hp('0.5%'), borderWidth: 1, borderColor: '#222', justifyContent: 'center' }}
-                                >
-                                    <Text style={{ color: 'white' }}>
-                                        {eventDate.getDate().toString().padStart(2, '0')}-{(eventDate.getMonth() + 1).toString().padStart(2, '0')}-{eventDate.getFullYear()}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Label text="Time" />
+                                <Label text="Start Time" />
                                 <TouchableOpacity
                                     activeOpacity={0.7}
                                     onPress={() => setShowTimePicker(true)}
@@ -337,6 +349,18 @@ export default function ClubHomeScreen() {
                                 >
                                     <Text style={{ color: eventForm.timeDisplay ? 'white' : '#52525B' }}>
                                         {eventForm.timeDisplay || '6:00 PM'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Label text="End Time" />
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    onPress={() => setShowEndTimePicker(true)}
+                                    style={{ backgroundColor: '#161618', padding: hp('1.5%'), borderRadius: 10, marginTop: hp('0.5%'), borderWidth: 1, borderColor: '#222', justifyContent: 'center' }}
+                                >
+                                    <Text style={{ color: 'white' }}>
+                                        {`${eventEndTime.getHours() % 12 || 12}:${eventEndTime.getMinutes().toString().padStart(2, '0')} ${eventEndTime.getHours() >= 12 ? 'PM' : 'AM'}`}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -370,7 +394,17 @@ export default function ClubHomeScreen() {
                             }}
                         />
 
-                        <Label text="Location" /><CustomInput placeholder="Room/Venue" onChangeText={(t) => setEventForm({ ...eventForm, location: t })} />
+                        <CustomTimePickerModal
+                            visible={showEndTimePicker}
+                            time={eventEndTime}
+                            onCancel={() => setShowEndTimePicker(false)}
+                            onConfirm={(selectedDate: any) => {
+                                setShowEndTimePicker(false);
+                                if (selectedDate) setEventEndTime(selectedDate);
+                            }}
+                        />
+
+                        <Label text="Location" /><CustomInput placeholder="Room/Venue (e.g. LHC 110)" onChangeText={(t) => setEventForm({ ...eventForm, location: t })} />
 
                         {/* Upload Image */}
                         <Label text="Event Poster" />
@@ -605,9 +639,9 @@ export default function ClubHomeScreen() {
                                     <TouchableOpacity onPress={() => setShowSidebar(false)}><X color="#fff" size={hp('2.2%')} /></TouchableOpacity>
                                 </View>
                                 <ScrollView contentContainerStyle={{ padding: wp('6%') }}>
-                                    <SidebarItem index={1} icon={Grid} label="LHC Heatmap" color="#6366F1" />
-                                    <SidebarItem index={4} icon={Siren} label="S.O.S Protocol" color="#F87171" isAlert={true} />
-                                    <SidebarItem index={7} icon={Settings} label="Settings" color="#A1A1AA" />
+                                    <SidebarItem index={1} icon={Grid} label="LHC Heatmap" color="#6366F1" onPress={() => { setShowSidebar(false); router.push('/heatmap'); }} />
+                                    <SidebarItem index={4} icon={Siren} label="S.O.S Protocol" color="#F87171" isAlert={true} onPress={() => { setShowSidebar(false); router.push('/sos'); }} />
+                                    <SidebarItem index={7} icon={Settings} label="Settings" color="#A1A1AA" onPress={() => { setShowSidebar(false); router.push('/settings'); }} />
                                 </ScrollView>
                                 <TouchableOpacity onPress={() => router.replace('/')} style={{ margin: wp('6%'), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: hp('2%'), borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.03)' }}>
                                     <LogOut color="#EF4444" size={hp('2%')} /><Text style={{ color: '#EF4444', fontWeight: '700', marginLeft: 10 }}>LOG OUT</Text>

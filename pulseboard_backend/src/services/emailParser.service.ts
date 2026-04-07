@@ -6,6 +6,7 @@ export interface ParsedEvent {
     title: string;
     description: string;
     date: Date;
+    endDate?: Date;
     timeDisplay: string;
     location: string;
     badge: 'LIVE' | 'UPCOMING';
@@ -163,6 +164,7 @@ Color guide: "#6366F1" tech, "#F59E0B" cultural, "#10B981" sports/health, "#3B82
             title: parsed.title || subject || 'Untitled Event',
             description: parsed.description || '',
             date: eventDate,
+            endDate: parsed.endDate ? new Date(parsed.endDate) : new Date(eventDate.getTime() + 3600000), 
             timeDisplay,
             location: parsed.location || 'TBD',
             badge: parsed.badge === 'LIVE' ? 'LIVE' : 'UPCOMING',
@@ -316,6 +318,7 @@ function smartRegexParse(subject: string, body: string): ParsedEvent | null {
         title: subject || 'Untitled Event',
         description: body.slice(0, 3000),
         date,
+        endDate: endTimeStr ? (applyTimeDisplayToDate(date, normalizeTimeStr(endTimeStr)) || new Date(date.getTime() + 3600000)) : new Date(date.getTime() + 3600000),
         timeDisplay,
         location,
         badge: 'UPCOMING',

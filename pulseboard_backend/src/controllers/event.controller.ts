@@ -3,6 +3,7 @@ import Event from '../models/Event.model';
 import User from '../models/User.model';
 import Club from '../models/Club.model';
 import { sendPushNotification } from '../services/notification.service';
+import { extractLHCRoom, isLHCRoomAvailable } from '../services/lhc.service';
 
 /**
  * --- Create Event ---
@@ -12,9 +13,28 @@ import { sendPushNotification } from '../services/notification.service';
 export const createEvent = async (req: Request, res: Response) => {
   try {
     const eventData = { ...req.body };
-    if (req.file) {
-      eventData.imageUrl = req.file.path;
+    if ((req as any).file) {
+      eventData.imageUrl = (req as any).file.path;
     }
+
+    // --- LHC Room Overlap Prevention ---
+    const room = extractLHCRoom(eventData.location);
+    if (room) {
+      const start = new Date(eventData.date);
+      const end = eventData.endDate ? new Date(eventData.endDate) : new Date(start.getTime() + 3600000);
+      const { available, conflict } = await isLHCRoomAvailable(room, start, end);
+      
+      if (!available) {
+        return res.status(409).json({ 
+          message: `Room LHC ${room} is already reserved for this time.`, 
+          conflict: {
+            title: conflict.title,
+            time: conflict.timeDisplay
+          }
+        });
+      }
+    }
+
     const newEvent = new Event(eventData);
     const savedEvent = await newEvent.save();
 
@@ -104,7 +124,7 @@ export const getEventsByClubId = async (req: Request, res: Response) => {
     const events = await Event.find({ 
       clubId: Number(clubId),
       badge: { $in: ['LIVE', 'UPCOMING'] } 
-    }).sort({ date: 1 });
+    }).sort({ date: 1 }).lean();
     
     res.status(200).json(events);
   } catch (error) {

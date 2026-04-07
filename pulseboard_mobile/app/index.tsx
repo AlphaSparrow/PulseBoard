@@ -1,19 +1,51 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowRight, Target } from 'lucide-react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import { useTheme } from '../src/context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // --- Theme Constants ---
 const LN_VOLT = '#CCF900'; 
 
 export default function WelcomeScreen() {
+  const { isDark } = useTheme();
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          // If token exists, teleport to home immediately
+          router.replace('/tabs/home');
+          return;
+        }
+      } catch (e) {
+        console.error("Auth check failed", e);
+      } finally {
+        // Only stop loading if we haven't redirected
+        setCheckingSession(false);
+      }
+    };
+    checkAuth();
+  }, []);
+
+  if (checkingSession) {
+    return (
+      <View className="flex-1 bg-black justify-center items-center">
+        <ActivityIndicator color={LN_VOLT} size="large" />
+      </View>
+    );
+  }
+
   return (
     // OUTER FRAME: Pitch Black Background
     <View className="flex-1 bg-black justify-center items-center" style={{ padding: wp('2%') }}>
       
       {/* HIDE STATUS BAR */}
-      <StatusBar hidden={true} />
+      <StatusBar barStyle="light-content" hidden={true} />
 
       {/* INNER FRAME: The "Card" */}
       <View className="w-full h-full bg-[#050505] rounded-[20px] border border-neutral-800 relative overflow-hidden">

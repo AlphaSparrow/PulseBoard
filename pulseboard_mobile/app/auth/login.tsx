@@ -21,13 +21,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import { useTheme } from '../../src/context/ThemeContext';
 
 // REQUIRED: completes the auth.expo.io handshake and closes the browser tab
 WebBrowser.maybeCompleteAuthSession();
-
-
-
-
 
 // --- Theme Constants ---
 const LN_VOLT = '#CCF900';
@@ -38,6 +35,7 @@ const BG_IMAGE = require('../../assets/roll.jpg');
 const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
 
 export default function LoginScreen() {
+  const { isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,13 +43,14 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
-  // ── Google OAuth via auth.expo.io Proxy (Manual Implementation) ──────────
-  // In expo-auth-session v7, useProxy was removed from types but SessionUrlProvider
-  // still exists in the JS runtime. We manually build the proxy flow:
-  // 1. Build the Google OAuth URL
-  // 2. Get the local exp:// return URL (what the app listens on)
-  // 3. Wrap it in the auth.expo.io /start URL (this registers the session)
-  // 4. openAuthSessionAsync watches for the returnUrl (exp://) to close the browser
+  const colors = {
+    bg: isDark ? '#050505' : '#FFFFFF',
+    card: isDark ? '#121212' : '#F5F5F7',
+    text: isDark ? 'white' : 'black',
+    border: isDark ? '#262626' : '#E5E5E5',
+    subtext: isDark ? '#A1A1A1' : '#666666',
+  };
+
   const handleGoogleSignIn = async () => {
     try {
       setGoogleLoading(true);
@@ -59,14 +58,9 @@ export default function LoginScreen() {
       const state = Math.random().toString(36).substring(2, 12);
       const nonce = Math.random().toString(36).substring(2, 18);
 
-      // ① What Google redirects TO (must be in Google Cloud Console Authorized Redirect URIs)
       const proxyRedirectUri = 'https://auth.expo.io/@ashvr/pulseboard_mobile';
-
-      // ② What auth.expo.io relays back TO (the local Expo Go deep-link)
-      //    Linking.createURL() → "exp://10.23.x.x:8081/--/auth/login" in Expo Go
       const returnUrl = Linking.createURL('auth/login');
 
-      // ③ Raw Google OAuth URL (sends user to Google, redirect back to auth.expo.io)
       const googleAuthUrl =
         `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
@@ -78,18 +72,14 @@ export default function LoginScreen() {
         `&state=${state}` +
         `&nonce=${nonce}`;
 
-      // ④ auth.expo.io /start URL — registers the session so the proxy knows where to relay
-      //    Flow: /start → Google → auth.expo.io → returnUrl (exp://)
       const startUrl =
         `${proxyRedirectUri}/start?` +
         `authUrl=${encodeURIComponent(googleAuthUrl)}` +
         `&returnUrl=${encodeURIComponent(returnUrl)}`;
 
-      // ⑤ openAuthSessionAsync watches for navigation to returnUrl (exp://) to close browser
       const result = await WebBrowser.openAuthSessionAsync(startUrl, returnUrl);
 
       if (result.type === 'success' && result.url) {
-        // auth.expo.io appends the params to the exp:// URL as query params
         const returnedUrl = new URL(result.url);
         const code =
           returnedUrl.searchParams.get('code') ||
@@ -105,7 +95,9 @@ export default function LoginScreen() {
 
         const data = await googleLoginUser({ code, redirectUri: proxyRedirectUri });
         if (data.token) {
-          // Send push token to backend now that we're authenticated
+          // PERSISTENCE: Save token to device
+          await AsyncStorage.setItem('token', data.token);
+
           const pushToken = await AsyncStorage.getItem('expoPushToken');
           if (pushToken) {
             api.post('/users/save-push-token', { expoPushToken: pushToken }).catch(() => {});
@@ -126,9 +118,7 @@ export default function LoginScreen() {
             router.replace('/tabs/home');
           }
         }
-      } else if (result.type === 'cancel' || result.type === 'dismiss') {
-        // user cancelled — do nothing
-      }
+      } 
     } catch (err: any) {
       const msg = err?.response?.data?.error || err?.message || 'Google login failed.';
       Alert.alert('Google Error', msg);
@@ -136,8 +126,6 @@ export default function LoginScreen() {
       setGoogleLoading(false);
     }
   };
-  // ─────────────────────────────────────────────────────────────────────────
-
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -152,13 +140,11 @@ export default function LoginScreen() {
       if (response.token) {
         await AsyncStorage.setItem('token', response.token);
 
-        // Send push token now that auth token is stored
         const pushToken = await AsyncStorage.getItem('expoPushToken');
         if (pushToken) {
           api.post('/users/save-push-token', { expoPushToken: pushToken }).catch(() => {});
         }
 
-        // Club portal routing logic
         const clubEmails = [
           'quantclub@iitj.ac.in', 'devluplabs@iitj.ac.in', 'raid@iitj.ac.in',
           'inside@iitj.ac.in', 'theproductcub@iitj.ac.in', 'theproductclub@iitj.ac.in',
@@ -176,16 +162,8 @@ export default function LoginScreen() {
       } else {
         throw new Error("No token received");
       }
-
     } catch (error: any) {
-      console.log("Login Error Full:", error);
-      if (error.message === 'Network Error') {
-        Alert.alert(
-          'Connection Failed',
-          'Cannot reach the server. \n\n1. Check if backend is running.\n2. Ensure API_URL uses your IP (not localhost).'
-        );
-      } else if (error?.response?.status === 403 && error?.response?.data?.requiresVerification) {
-        // Email not verified — redirect to OTP screen
+      if (error?.response?.status === 403 && error?.response?.data?.requiresVerification) {
         const unverifiedEmail = error?.response?.data?.email || email;
         Alert.alert(
           'Email Not Verified',
@@ -208,21 +186,19 @@ export default function LoginScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#050505]">
-      {/* HIDE STATUS BAR */}
-      <StatusBar hidden={true} />
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      {/* LAYER 1: The Image (Lion) */}
       <ImageBackground
         source={BG_IMAGE}
         className="flex-1"
         resizeMode="cover"
-        imageStyle={{ opacity: 0.35 }}
+        imageStyle={{ opacity: isDark ? 0.35 : 0.08 }}
       >
-
-        {/* LAYER 2: The Gradient Mask */}
         <LinearGradient
-          colors={['transparent', 'rgba(5, 5, 5, 0.6)', '#050505']}
+          colors={isDark 
+            ? ['transparent', 'rgba(5, 5, 5, 0.6)', '#050505'] 
+            : ['transparent', 'rgba(255, 255, 255, 0.4)', '#FFFFFF']}
           locations={[0, 0.4, 0.8]}
           className="absolute w-full h-full"
         />
@@ -233,18 +209,19 @@ export default function LoginScreen() {
             className="flex-1 justify-between"
             style={{ paddingHorizontal: wp('6%') }}
           >
-            {/* --- Header Section --- */}
             <View style={{ marginTop: hp('2%') }}>
               <TouchableOpacity
                 onPress={() => router.back()}
-                className="bg-[#121212]/80 border border-neutral-800 rounded-full justify-center items-center"
                 style={{
                   width: wp('12%'),
                   height: wp('12%'),
-                  marginBottom: hp('3%')
+                  marginBottom: hp('3%'),
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
                 }}
+                className="border rounded-full justify-center items-center"
               >
-                <ChevronLeft color="white" size={wp('6%')} />
+                <ChevronLeft color={colors.text} size={wp('6%')} />
               </TouchableOpacity>
 
               <View>
@@ -259,25 +236,22 @@ export default function LoginScreen() {
                 </View>
 
                 <Text
-                  className="text-white font-black italic tracking-tighter uppercase"
-                  style={{ fontSize: hp('5.5%'), lineHeight: hp('6%'), marginBottom: hp('2%') }}
+                  className="font-black italic tracking-tighter uppercase"
+                  style={{ color: colors.text, fontSize: hp('5.5%'), lineHeight: hp('6%'), marginBottom: hp('2%') }}
                 >
                   System<Text className="text-[#CCF900]">.</Text>{"\n"}Login
                 </Text>
 
                 <Text
-                  className="text-neutral-400 font-medium"
-                  style={{ fontSize: hp('1.8%'), lineHeight: hp('2.4%'), maxWidth: wp('80%') }}
+                  className="font-medium"
+                  style={{ color: colors.subtext, fontSize: hp('1.8%'), lineHeight: hp('2.4%'), maxWidth: wp('80%') }}
                 >
                   Enter your credentials to sync with the campus network.
                 </Text>
               </View>
             </View>
 
-            {/* --- Form Section --- */}
             <View style={{ marginTop: hp('2%'), gap: hp('2.5%') }}>
-
-              {/* Email Input */}
               <View>
                 <Text
                   className="text-neutral-500 font-bold uppercase"
@@ -286,16 +260,15 @@ export default function LoginScreen() {
                   Identifier // Email
                 </Text>
                 <View
-                  className={`bg-[#121212]/90 rounded-xl border flex-row items-center px-4 ${focusedInput === 'email' ? 'border-[#CCF900]' : 'border-neutral-800'
-                    }`}
-                  style={{ height: hp('6.5%') }} // Adjusted Height
+                  style={{ height: hp('6.5%'), backgroundColor: colors.card, borderColor: focusedInput === 'email' ? LN_VOLT : colors.border }}
+                  className="rounded-xl border flex-row items-center px-4"
                 >
-                  <Mail color={focusedInput === 'email' ? LN_VOLT : '#555'} size={hp('2.5%')} style={{ marginRight: wp('3%') }} />
+                  <Mail color={focusedInput === 'email' ? LN_VOLT : '#888'} size={hp('2.5%')} style={{ marginRight: wp('3%') }} />
                   <TextInput
-                    className="flex-1 text-white font-bold h-full"
-                    style={{ fontSize: hp('1.8%') }}
+                    className="flex-1 font-bold h-full"
+                    style={{ color: colors.text, fontSize: hp('1.8%') }}
                     placeholder="user@iitj.ac.in"
-                    placeholderTextColor="#444"
+                    placeholderTextColor="#888"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     value={email}
@@ -307,7 +280,6 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              {/* Password Input */}
               <View>
                 <Text
                   className="text-neutral-500 font-bold uppercase"
@@ -316,16 +288,15 @@ export default function LoginScreen() {
                   Security Key // Password
                 </Text>
                 <View
-                  className={`bg-[#121212]/90 rounded-xl border flex-row items-center px-4 ${focusedInput === 'password' ? 'border-[#CCF900]' : 'border-neutral-800'
-                    }`}
-                  style={{ height: hp('6.5%') }} // Adjusted Height
+                  style={{ height: hp('6.5%'), backgroundColor: colors.card, borderColor: focusedInput === 'password' ? LN_VOLT : colors.border }}
+                  className="rounded-xl border flex-row items-center px-4"
                 >
-                  <Lock color={focusedInput === 'password' ? LN_VOLT : '#555'} size={hp('2.5%')} style={{ marginRight: wp('3%') }} />
+                  <Lock color={focusedInput === 'password' ? LN_VOLT : '#888'} size={hp('2.5%')} style={{ marginRight: wp('3%') }} />
                   <TextInput
-                    className="flex-1 text-white font-bold h-full"
-                    style={{ fontSize: hp('1.8%') }}
+                    className="flex-1 font-bold h-full"
+                    style={{ color: colors.text, fontSize: hp('1.8%') }}
                     placeholder="••••••••"
-                    placeholderTextColor="#444"
+                    placeholderTextColor="#888"
                     secureTextEntry={!showPassword}
                     value={password}
                     onChangeText={setPassword}
@@ -334,11 +305,7 @@ export default function LoginScreen() {
                     onBlur={() => setFocusedInput(null)}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: wp('2%') }}>
-                    {showPassword ? (
-                      <EyeOff color="#555" size={hp('2.5%')} />
-                    ) : (
-                      <Eye color="#555" size={hp('2.5%')} />
-                    )}
+                    <Eye color="#888" size={hp('2.5%')} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -348,25 +315,19 @@ export default function LoginScreen() {
                 onPress={() => router.push('/auth/forgot-password')}
               >
                 <Text
-                  className="text-neutral-400 font-bold uppercase border-b border-[#CCF900]/50"
-                  style={{ fontSize: hp('1.4%'), letterSpacing: 1, paddingBottom: 2 }}
+                  className="font-bold uppercase border-b border-[#CCF900]/50"
+                  style={{ color: colors.subtext, fontSize: hp('1.4%'), letterSpacing: 1, paddingBottom: 2 }}
                 >
                   Reset Credentials?
                 </Text>
               </TouchableOpacity>
 
-              {/* Main Action Button */}
               <TouchableOpacity
                 className={`bg-[#CCF900] justify-center items-center group ${loading ? 'opacity-70' : ''}`}
                 onPress={handleLogin}
                 disabled={loading}
                 activeOpacity={0.9}
-                style={{
-                  height: hp('6.5%'),
-                  marginTop: hp('2%'),
-                  transform: [{ skewX: '-12deg' }],
-                  borderRadius: 4
-                }}
+                style={{ height: hp('6.5%'), marginTop: hp('2%'), transform: [{ skewX: '-12deg' }], borderRadius: 4 }}
               >
                 {loading ? (
                   <View style={{ transform: [{ skewX: '12deg' }] }}>
@@ -374,10 +335,7 @@ export default function LoginScreen() {
                   </View>
                 ) : (
                   <View className="flex-row items-center" style={{ transform: [{ skewX: '12deg' }] }}>
-                    <Text
-                      className="text-black font-black uppercase mr-2"
-                      style={{ fontSize: hp('2%'), letterSpacing: 2 }}
-                    >
+                    <Text className="text-black font-black uppercase mr-2" style={{ fontSize: hp('2%'), letterSpacing: 2 }}>
                       INITIATE SESSION
                     </Text>
                     <Zap color="black" size={hp('2.5%')} fill="black" />
@@ -385,25 +343,23 @@ export default function LoginScreen() {
                 )}
               </TouchableOpacity>
 
-              {/* ── Divider ── */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: hp('1%') }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: '#2a2a2a' }} />
-                <Text style={{ color: '#444', fontSize: hp('1.4%'), marginHorizontal: wp('3%'), fontFamily: 'monospace', letterSpacing: 2 }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                <Text style={{ color: colors.subtext, fontSize: hp('1.4%'), marginHorizontal: wp('3%'), fontFamily: 'monospace', letterSpacing: 2 }}>
                   OR
                 </Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: '#2a2a2a' }} />
+                <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
               </View>
 
-              {/* ── Google Sign-In Button ── */}
               <TouchableOpacity
                 onPress={handleGoogleSignIn}
                 disabled={googleLoading}
                 activeOpacity={0.85}
                 style={{
                   height: hp('6.5%'),
-                  backgroundColor: '#121212',
+                  backgroundColor: colors.card,
                   borderWidth: 1,
-                  borderColor: googleLoading ? '#333' : '#CCF900',
+                  borderColor: googleLoading ? colors.border : '#CCF900',
                   borderRadius: 4,
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -416,39 +372,27 @@ export default function LoginScreen() {
                   <ActivityIndicator color="#CCF900" />
                 ) : (
                   <>
-                    {/* Google 'G' logo as coloured text */}
-                    <Text style={{ fontSize: hp('2.2%'), fontWeight: '900', color: '#4285F4', letterSpacing: -1 }}>
-                      G
-                    </Text>
-                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: hp('1.8%'), letterSpacing: 1, textTransform: 'uppercase' }}>
+                    <Text style={{ fontSize: hp('2.2%'), fontWeight: '900', color: '#4285F4', letterSpacing: -1 }}>G</Text>
+                    <Text style={{ color: colors.text, fontWeight: '800', fontSize: hp('1.8%'), letterSpacing: 1, textTransform: 'uppercase' }}>
                       Continue with Google
                     </Text>
                   </>
                 )}
               </TouchableOpacity>
-
             </View>
 
-            {/* --- Footer --- */}
             <View style={{ paddingBottom: hp('4%'), alignItems: 'center' }}>
               <View className="flex-row items-center">
-                <Text
-                  className="text-neutral-400 font-medium mr-2"
-                  style={{ fontSize: hp('1.6%') }}
-                >
+                <Text className="font-medium mr-2" style={{ color: colors.subtext, fontSize: hp('1.6%') }}>
                   New to PulseBoard?
                 </Text>
                 <TouchableOpacity onPress={() => router.push('/auth/register')}>
-                  <Text
-                    className="text-white font-black uppercase border-b border-[#CCF900]"
-                    style={{ fontSize: hp('1.6%'), letterSpacing: 1 }}
-                  >
+                  <Text className="font-black uppercase border-b border-[#CCF900]" style={{ color: colors.text, fontSize: hp('1.6%'), letterSpacing: 1 }}>
                     Create Account
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
-
           </KeyboardAvoidingView>
         </SafeAreaView>
       </ImageBackground>

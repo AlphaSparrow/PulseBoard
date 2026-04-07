@@ -3,18 +3,21 @@ import { Platform, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Users, User, Mail } from 'lucide-react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
-
-// --- THEME CONSTANTS ---
-const THEME = {
-  ACCENT: '#CCF900',      // Volt Yellow
-  BG: '#050505',          // Deep Matte Black
-  BORDER: 'rgba(255, 255, 255, 0.1)', // Subtle Glass Edge
-  INACTIVE: '#52525B',    // Zinc 600
-};
+import { useTheme } from '../../src/context/ThemeContext';
 
 export default function TabLayout() {
+  const { isDark } = useTheme();
+  
   // Dynamic scaling for icons
   const iconSize = hp('3%');
+
+  // THEME COLORS
+  const THEME = {
+    ACCENT: '#CCF900',      // Volt Yellow
+    BG: isDark ? '#050505' : '#FFFFFF',          
+    BORDER: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)', 
+    INACTIVE: isDark ? '#52525B' : '#A1A1AA',    // Zinc 600
+  };
 
   return (
     <Tabs

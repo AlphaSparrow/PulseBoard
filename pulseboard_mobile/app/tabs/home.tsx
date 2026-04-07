@@ -2,8 +2,10 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   SafeAreaView, StatusBar, ActivityIndicator, Platform, StyleSheet,
-  Modal, TextInput, TextInputProps, Alert, Image
+  Modal, TextInput, TextInputProps, Alert
 } from 'react-native';
+import { useTheme } from '../../src/context/ThemeContext';
+import { Image } from 'expo-image';
 import {
   Menu, Calendar, PlayCircle, MapPin, LogOut,
   X, Grid, Siren, Settings, ChevronRight, Plus, RefreshCw,
@@ -26,35 +28,41 @@ const getRgba = (hex: string, opacity: number) => {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
-const SidebarItem = React.memo(({ icon: Icon, label, color, index, onPress, isAlert }: any) => (
-  <MotiView
-    from={{ opacity: 0, translateX: 20 }}
-    animate={{ opacity: 1, translateX: 0 }}
-    transition={{ type: 'timing', duration: 300, delay: index * 30, easing: Easing.out(Easing.quad) }}
-    style={{ marginBottom: hp('1.2%') }}
-  >
-    <TouchableOpacity
-      activeOpacity={0.6}
-      onPress={onPress}
-      style={{
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingVertical: hp('1.6%'), paddingHorizontal: wp('4%'), backgroundColor: '#0F0F0F',
-        borderRadius: 18, borderWidth: 1, borderColor: isAlert ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255,255,255,0.08)'
-      }}
+const SidebarItem = React.memo(({ icon: Icon, label, color, index, onPress, isAlert }: any) => {
+  const { isDark } = useTheme();
+  return (
+    <MotiView
+      from={{ opacity: 0, translateX: 20 }}
+      animate={{ opacity: 1, translateX: 0 }}
+      transition={{ type: 'timing', duration: 300, delay: index * 30, easing: Easing.out(Easing.quad) }}
+      style={{ marginBottom: hp('1.2%') }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{
-          width: wp('10%'), height: wp('10%'), borderRadius: 12, backgroundColor: getRgba(color, 0.1),
-          alignItems: 'center', justifyContent: 'center', marginRight: wp('3.5%'), borderWidth: 1, borderColor: getRgba(color, 0.15)
-        }}>
-          <Icon color={color} size={hp('2%')} />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        onPress={onPress}
+        style={{
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+          paddingVertical: hp('1.6%'), paddingHorizontal: wp('4%'), 
+          backgroundColor: isDark ? '#0F0F0F' : '#F5F5F7',
+          borderRadius: 18, 
+          borderWidth: 1, 
+          borderColor: isAlert ? 'rgba(239, 68, 68, 0.3)' : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{
+            width: wp('10%'), height: wp('10%'), borderRadius: 12, backgroundColor: getRgba(color, 0.1),
+            alignItems: 'center', justifyContent: 'center', marginRight: wp('3.5%'), borderWidth: 1, borderColor: getRgba(color, 0.15)
+          }}>
+            <Icon color={color} size={hp('2.1%')} />
+          </View>
+          <Text style={{ color: isAlert ? '#EF4444' : (isDark ? '#E5E5E5' : '#1A1A1A'), fontSize: hp('1.7%'), fontWeight: '600' }}>{label}</Text>
         </View>
-        <Text style={{ color: isAlert ? '#EF4444' : '#E5E5E5', fontSize: hp('1.7%'), fontWeight: '600' }}>{label}</Text>
-      </View>
-      {!isAlert && <ChevronRight color="#333" size={hp('1.8%')} />}
-    </TouchableOpacity>
-  </MotiView>
-));
+        {!isAlert && <ChevronRight color={isDark ? "#333" : "#CCC"} size={hp('1.8%')} />}
+      </TouchableOpacity>
+    </MotiView>
+  );
+});
 
 const SectionHeader = React.memo(({ title, icon: Icon, color = "white" }: any) => (
   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: wp('6%'), marginBottom: hp('2.5%'), marginTop: hp('1%') }}>
@@ -66,6 +74,7 @@ const SectionHeader = React.memo(({ title, icon: Icon, color = "white" }: any) =
 ));
 
 export default function HomeScreen() {
+  const { isDark } = useTheme();
   const [showSidebar, setShowSidebar] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
@@ -174,25 +183,25 @@ export default function HomeScreen() {
 
   if (loading && events.length === 0) {
     return (
-      <View className="flex-1 bg-[#050505] justify-center items-center">
+      <View className="flex-1 bg-white dark:bg-[#050505] justify-center items-center">
         <ActivityIndicator size="large" color={THEME_ACCENT} />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-[#050505]">
-      <StatusBar barStyle="light-content" backgroundColor="#050505" />
+    <View className="flex-1 bg-white dark:bg-[#050505]">
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <SafeAreaView className="flex-1" style={{ paddingTop: Platform.OS === 'android' ? hp('1%') : 0 }}>
 
         {/* Header */}
         <View style={{ paddingHorizontal: wp('7%'), paddingTop: hp('3%'), paddingBottom: hp('1%'), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View>
-            <Text style={{ color: '#737373', fontWeight: 'bold', fontSize: hp('1.5%'), letterSpacing: 3, textTransform: 'uppercase', marginBottom: hp('0.5%') }}>Welcome Back</Text>
-            <Text style={{ color: 'white', fontSize: hp('3.7%'), fontWeight: '900', letterSpacing: -1 }}>{user.name.split(' ')[0]}</Text>
+            <Text className="text-neutral-500 dark:text-[#737373] font-bold" style={{ fontSize: hp('1.5%'), letterSpacing: 3, textTransform: 'uppercase', marginBottom: hp('0.5%') }}>Welcome Back</Text>
+            <Text className="text-black dark:text-white" style={{ fontSize: hp('3.7%'), fontWeight: '900', letterSpacing: -1 }}>{user.name.split(' ')[0]}</Text>
           </View>
-          <TouchableOpacity onPress={() => setShowSidebar(true)} style={{ width: wp('12%'), height: wp('12%'), backgroundColor: '#121212', borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#222' }}>
-            <Menu color="white" size={hp('2.5%')} />
+          <TouchableOpacity onPress={() => setShowSidebar(true)} className="bg-neutral-100 dark:bg-[#121212] border-neutral-200 dark:border-[#222]" style={{ width: wp('12%'), height: wp('12%'), borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1 }}>
+            <Menu color={isDark ? "white" : "black"} size={hp('2.5%')} />
           </TouchableOpacity>
         </View>
 
@@ -343,7 +352,8 @@ export default function HomeScreen() {
                       <Image 
                         source={{ uri: selectedEvent.imageUrl }}
                         style={{ width: '100%', height: hp('20%'), borderRadius: 16, marginBottom: hp('2%') }}
-                        resizeMode="cover"
+                        contentFit="cover"
+                        transition={200}
                       />
                     </TouchableOpacity>
                   ) : null}
@@ -419,7 +429,7 @@ export default function HomeScreen() {
                   <Image 
                       source={{ uri: fullScreenImage }}
                       style={{ width: '100%', height: '100%' }}
-                      resizeMode="contain"
+                      contentFit="contain"
                   />
               )}
           </View>
@@ -432,7 +442,22 @@ export default function HomeScreen() {
             <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
               <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowSidebar(false)} />
             </MotiView>
-            <MotiView from={{ translateX: wp('100%') }} animate={{ translateX: 0 }} exit={{ translateX: wp('100%') }} transition={{ type: 'timing', duration: 250 }} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: wp('82%'), backgroundColor: '#050505', borderLeftWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+            <MotiView 
+              from={{ translateX: wp('100%') }} 
+              animate={{ translateX: 0 }} 
+              exit={{ translateX: wp('100%') }} 
+              transition={{ type: 'timing', duration: 250 }} 
+              style={{ 
+                position: 'absolute', 
+                right: 0, 
+                top: 0, 
+                bottom: 0, 
+                width: wp('82%'), 
+                backgroundColor: isDark ? '#050505' : '#FFFFFF', 
+                borderLeftWidth: 1, 
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' 
+              }}
+            >
               <SafeAreaView style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: wp('6%'), paddingTop: hp('3%') }}>
                   <Text style={{ color: 'white', fontSize: hp('2.8%'), fontWeight: '900' }}>Menu</Text>
@@ -442,9 +467,9 @@ export default function HomeScreen() {
                   {adminClub && (
                     <SidebarItem index={0} icon={Plus} label="Publish Event" color={THEME_ACCENT} onPress={() => { setShowSidebar(false); setModalVisible(true); }} />
                   )}
-                  <SidebarItem index={1} icon={Grid} label="LHC Heatmap" color="#6366F1" />
-                  <SidebarItem index={4} icon={Siren} label="S.O.S Protocol" color="#F87171" isAlert={true} />
-                  <SidebarItem index={7} icon={Settings} label="Settings" color="#A1A1AA" />
+                  <SidebarItem index={1} icon={Grid} label="LHC Heatmap" color="#6366F1" onPress={() => { setShowSidebar(false); router.push('/heatmap'); }} />
+                  <SidebarItem index={4} icon={Siren} label="S.O.S Protocol" color="#F87171" isAlert={true} onPress={() => { setShowSidebar(false); router.push('/sos'); }} />
+                  <SidebarItem index={7} icon={Settings} label="Settings" color="#A1A1AA" onPress={() => { setShowSidebar(false); router.push('/settings'); }} />
                 </ScrollView>
                 <TouchableOpacity onPress={() => router.replace('/')} style={{ margin: wp('6%'), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: hp('2%'), borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.03)' }}>
                   <LogOut color="#EF4444" size={hp('2%')} /><Text style={{ color: '#EF4444', fontWeight: '700', marginLeft: 10 }}>LOG OUT</Text>

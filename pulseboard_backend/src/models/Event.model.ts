@@ -8,6 +8,7 @@ export interface IEvent extends Document {
   icon: string;        
   badge: 'LIVE' | 'UPCOMING';
   date: Date;          
+  endDate?: Date;      
   timeDisplay: string; 
   location: string;
   color?: string;      
@@ -22,9 +23,11 @@ const EventSchema: Schema = new Schema({
   badge: { 
     type: String, 
     enum: ['LIVE', 'UPCOMING'], 
-    default: 'UPCOMING' 
+    default: 'UPCOMING',
+    index: true
   },
-  date: { type: Date, required: true },
+  date: { type: Date, required: true, index: true },
+  endDate: { type: Date, index: true },
   timeDisplay: { type: String, required: true },
   location: { type: String, required: true },
   color: { type: String, default: '#ffffff' },

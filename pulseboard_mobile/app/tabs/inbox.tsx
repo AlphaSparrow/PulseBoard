@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Zap, MapPin, Clock, RefreshCw, Inbox, X, Mail, Calendar } from 'lucide-react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import api from '../../src/api/client';
+import { useTheme } from '../../src/context/ThemeContext';
 
 const ACCENT = '#CCF900';
 
@@ -37,6 +38,7 @@ const FILTERS = [
 ];
 
 export default function InboxScreen() {
+    const { isDark } = useTheme();
     const [events, setEvents] = useState<PersonalEvent[]>([]);
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
@@ -104,12 +106,13 @@ export default function InboxScreen() {
                 activeOpacity={0.75}
                 onPress={() => setSelectedEvent(item)}
                 style={{
-                    backgroundColor: '#0F0F0F',
+                    backgroundColor: isDark ? '#0F0F0F' : '#FFFFFF',
                     borderRadius: 16,
                     marginBottom: hp('1.5%'),
                     borderWidth: 1,
-                    borderColor: '#1E1E1E',
+                    borderColor: isDark ? '#1E1E1E' : '#E5E5E5',
                     overflow: 'hidden',
+                    ...(isDark ? {} : { elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 })
                 }}
             >
                 {/* Colored top bar */}
@@ -120,10 +123,10 @@ export default function InboxScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: wp('3%') }}>
                         <Text style={{ fontSize: hp('3%'), marginTop: 2 }}>{item.icon}</Text>
                         <View style={{ flex: 1 }}>
-                            <Text style={{ color: '#fff', fontWeight: '800', fontSize: hp('1.9%'), lineHeight: hp('2.5%') }} numberOfLines={2}>
+                            <Text style={{ color: isDark ? '#fff' : '#000', fontWeight: '800', fontSize: hp('1.9%'), lineHeight: hp('2.5%') }} numberOfLines={2}>
                                 {item.title}
                             </Text>
-                            <Text style={{ color: '#555', fontSize: hp('1.3%'), marginTop: 2 }} numberOfLines={1}>
+                            <Text style={{ color: isDark ? '#555' : '#888', fontSize: hp('1.3%'), marginTop: 2 }} numberOfLines={1}>
                                 {item.sourceFrom}
                             </Text>
                         </View>
@@ -136,7 +139,7 @@ export default function InboxScreen() {
 
                     {/* Description */}
                     {item.description ? (
-                        <Text style={{ color: '#888', fontSize: hp('1.5%'), marginTop: hp('1%'), lineHeight: hp('2.2%') }} numberOfLines={2}>
+                        <Text style={{ color: isDark ? '#888' : '#666', fontSize: hp('1.5%'), marginTop: hp('1%'), lineHeight: hp('2.2%') }} numberOfLines={2}>
                             {item.description}
                         </Text>
                     ) : null}
@@ -151,8 +154,8 @@ export default function InboxScreen() {
                         </View>
                         {item.location !== 'TBD' && (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <MapPin size={hp('1.5%')} color="#555" />
-                                <Text style={{ color: '#555', fontSize: hp('1.35%') }} numberOfLines={1}>{item.location}</Text>
+                                <MapPin size={hp('1.5%')} color={isDark ? "#555" : "#AAA"} />
+                                <Text style={{ color: isDark ? '#555' : '#AAA', fontSize: hp('1.35%') }} numberOfLines={1}>{item.location}</Text>
                             </View>
                         )}
                     </View>
@@ -162,8 +165,8 @@ export default function InboxScreen() {
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#050505' }}>
-            <StatusBar barStyle="light-content" backgroundColor="#050505" />
+        <View style={{ flex: 1, backgroundColor: isDark ? '#050505' : '#FFFFFF' }}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
             <SafeAreaView style={{ flex: 1 }}>
 
                 {/* Header */}
@@ -182,7 +185,7 @@ export default function InboxScreen() {
                                 AI-PARSED · GMAIL
                             </Text>
                         </View>
-                        <Text style={{ color: 'white', fontWeight: '900', fontSize: hp('3.2%'), letterSpacing: -0.5 }}>
+                        <Text style={{ color: isDark ? 'white' : 'black', fontWeight: '900', fontSize: hp('3.2%'), letterSpacing: -0.5 }}>
                             Smart Inbox
                         </Text>
                     </View>
@@ -190,7 +193,7 @@ export default function InboxScreen() {
                         <TouchableOpacity
                             onPress={handleRescan}
                             disabled={rescanning}
-                            style={{ width: wp('10%'), height: wp('10%'), backgroundColor: '#121212', borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#222' }}
+                            style={{ width: wp('10%'), height: wp('10%'), backgroundColor: isDark ? '#121212' : '#F5F5F7', borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? '#222' : '#EEE' }}
                         >
                             {rescanning
                                 ? <ActivityIndicator size="small" color={ACCENT} />
@@ -200,9 +203,9 @@ export default function InboxScreen() {
                         <TouchableOpacity
                             onPress={() => fetchEvents(false)}
                             disabled={loading}
-                            style={{ width: wp('10%'), height: wp('10%'), backgroundColor: '#121212', borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#222' }}
+                            style={{ width: wp('10%'), height: wp('10%'), backgroundColor: isDark ? '#121212' : '#F5F5F7', borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? '#222' : '#EEE' }}
                         >
-                            <RefreshCw color={loading ? '#333' : '#888'} size={hp('2%')} />
+                            <RefreshCw color={loading ? (isDark ? '#333' : '#CCC') : (isDark ? '#888' : '#666')} size={hp('2%')} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -228,9 +231,9 @@ export default function InboxScreen() {
                                         borderRadius: 999,
                                         backgroundColor: active ? ACCENT : 'transparent',
                                         borderWidth: 1,
-                                        borderColor: active ? ACCENT : 'rgba(255,255,255,0.15)',
+                                        borderColor: active ? ACCENT : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'),
                                     }}>
-                                        <Text style={{ color: active ? '#000' : '#777', fontWeight: '700', fontSize: hp('1.4%') }}>
+                                        <Text style={{ color: active ? '#000' : (isDark ? '#777' : '#999'), fontWeight: '700', fontSize: hp('1.4%') }}>
                                             {f.label}
                                         </Text>
                                     </View>
@@ -245,7 +248,7 @@ export default function InboxScreen() {
                     {loading && !refreshing ? (
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                             <ActivityIndicator size="large" color={ACCENT} />
-                            <Text style={{ color: '#555', marginTop: hp('2%'), fontSize: hp('1.5%') }}>
+                            <Text style={{ color: isDark ? '#555' : '#888', marginTop: hp('2%'), fontSize: hp('1.5%') }}>
                                 Loading inbox...
                             </Text>
                         </View>
@@ -255,17 +258,17 @@ export default function InboxScreen() {
                         </View>
                     ) : events.length === 0 ? (
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: wp('10%') }}>
-                            <Inbox color="#222" size={hp('7%')} />
-                            <Text style={{ color: '#fff', fontWeight: '800', fontSize: hp('2.2%'), marginTop: hp('2%'), textAlign: 'center' }}>
+                            <Inbox color={isDark ? "#222" : "#EEE"} size={hp('7%')} />
+                            <Text style={{ color: isDark ? '#fff' : '#000', fontWeight: '800', fontSize: hp('2.2%'), marginTop: hp('2%'), textAlign: 'center' }}>
                                 No events yet
                             </Text>
-                            <Text style={{ color: '#444', fontSize: hp('1.5%'), textAlign: 'center', marginTop: hp('1%'), lineHeight: hp('2.2%') }}>
+                            <Text style={{ color: isDark ? '#444' : '#999', fontSize: hp('1.5%'), textAlign: 'center', marginTop: hp('1%'), lineHeight: hp('2.2%') }}>
                                 PulseBoard scans your Gmail every 5 min.{'\n'}Tap ⚡ to force a fresh re-scan.
                             </Text>
                         </View>
                     ) : filteredEvents.length === 0 ? (
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                            <Text style={{ color: '#444', fontSize: hp('1.6%') }}>
+                            <Text style={{ color: isDark ? '#444' : '#999', fontSize: hp('1.6%') }}>
                                 No {FILTERS.find(f => f.value === filter)?.label} events
                             </Text>
                         </View>
@@ -298,11 +301,11 @@ export default function InboxScreen() {
             >
                 <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
                     <View style={{
-                        backgroundColor: '#0D0D0D',
+                        backgroundColor: isDark ? '#0D0D0D' : '#FFFFFF',
                         borderTopLeftRadius: 24,
                         borderTopRightRadius: 24,
                         borderWidth: 1,
-                        borderColor: '#1E1E1E',
+                        borderColor: isDark ? '#1E1E1E' : '#EEE',
                         maxHeight: hp('85%'),
                     }}>
                         {selectedEvent && (
@@ -313,16 +316,25 @@ export default function InboxScreen() {
                                     {/* Close */}
                                     <TouchableOpacity
                                         onPress={() => setSelectedEvent(null)}
-                                        style={{ alignSelf: 'flex-end', width: wp('8%'), height: wp('8%'), backgroundColor: '#1A1A1A', borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginBottom: hp('1.5%') }}
+                                        style={{ 
+                                            alignSelf: 'flex-end', 
+                                            width: wp('8%'), 
+                                            height: wp('8%'), 
+                                            backgroundColor: isDark ? '#1A1A1A' : '#F5F5F7', 
+                                            borderRadius: 999, 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center', 
+                                            marginBottom: hp('1.5%') 
+                                        }}
                                     >
-                                        <X color="#666" size={hp('2%')} />
+                                        <X color={isDark ? "#666" : "#AAA"} size={hp('2%')} />
                                     </TouchableOpacity>
 
                                     {/* Icon + Title */}
                                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: wp('3%'), marginBottom: hp('2%') }}>
                                         <Text style={{ fontSize: hp('5%') }}>{selectedEvent.icon}</Text>
                                         <View style={{ flex: 1 }}>
-                                            <Text style={{ color: '#fff', fontWeight: '900', fontSize: hp('2.5%'), lineHeight: hp('3.2%') }}>
+                                            <Text style={{ color: isDark ? '#fff' : '#000', fontWeight: '900', fontSize: hp('2.5%'), lineHeight: hp('3.2%') }}>
                                                 {selectedEvent.title}
                                             </Text>
                                             {selectedEvent.badge === 'LIVE' && (
@@ -334,21 +346,21 @@ export default function InboxScreen() {
                                     </View>
 
                                     {selectedEvent.description ? (
-                                        <Text style={{ color: '#999', fontSize: hp('1.7%'), lineHeight: hp('2.6%'), marginBottom: hp('2.5%') }}>
+                                        <Text style={{ color: isDark ? '#999' : '#666', fontSize: hp('1.7%'), lineHeight: hp('2.6%'), marginBottom: hp('2.5%') }}>
                                             {selectedEvent.description}
                                         </Text>
                                     ) : null}
 
-                                    <View style={{ height: 1, backgroundColor: '#1E1E1E', marginBottom: hp('2.5%') }} />
+                                    <View style={{ height: 1, backgroundColor: isDark ? '#1E1E1E' : '#EEE', marginBottom: hp('2.5%') }} />
 
                                     {/* Date */}
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp('3%'), marginBottom: hp('2%') }}>
-                                        <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: '#161616', alignItems: 'center', justifyContent: 'center' }}>
+                                        <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: isDark ? '#161616' : '#F5F5F7', alignItems: 'center', justifyContent: 'center' }}>
                                             <Calendar size={hp('2%')} color={ACCENT} />
                                         </View>
                                         <View>
-                                            <Text style={{ color: '#555', fontSize: hp('1.2%'), marginBottom: 2 }}>DATE & TIME</Text>
-                                            <Text style={{ color: '#fff', fontWeight: '700', fontSize: hp('1.8%') }}>
+                                            <Text style={{ color: isDark ? '#555' : '#AAA', fontSize: hp('1.2%'), marginBottom: 2 }}>DATE & TIME</Text>
+                                            <Text style={{ color: isDark ? '#fff' : '#000', fontWeight: '700', fontSize: hp('1.8%') }}>
                                                 {new Date(selectedEvent.date).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
                                             </Text>
                                             <Text style={{ color: ACCENT, fontSize: hp('1.5%'), marginTop: 2 }}>
@@ -359,28 +371,28 @@ export default function InboxScreen() {
 
                                     {/* Location */}
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp('3%'), marginBottom: hp('2%') }}>
-                                        <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: '#161616', alignItems: 'center', justifyContent: 'center' }}>
+                                        <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: isDark ? '#161616' : '#F5F5F7', alignItems: 'center', justifyContent: 'center' }}>
                                             <MapPin size={hp('2%')} color={ACCENT} />
                                         </View>
                                         <View>
-                                            <Text style={{ color: '#555', fontSize: hp('1.2%'), marginBottom: 2 }}>LOCATION</Text>
-                                            <Text style={{ color: selectedEvent.location !== 'TBD' ? '#fff' : '#444', fontWeight: '600', fontSize: hp('1.8%') }}>
+                                            <Text style={{ color: isDark ? '#555' : '#AAA', fontSize: hp('1.2%'), marginBottom: 2 }}>LOCATION</Text>
+                                            <Text style={{ color: selectedEvent.location !== 'TBD' ? (isDark ? '#fff' : '#000') : (isDark ? '#444' : '#CCC'), fontWeight: '600', fontSize: hp('1.8%') }}>
                                                 {selectedEvent.location}
                                             </Text>
                                         </View>
                                     </View>
 
-                                    <View style={{ height: 1, backgroundColor: '#1E1E1E', marginBottom: hp('2.5%') }} />
+                                    <View style={{ height: 1, backgroundColor: isDark ? '#1E1E1E' : '#EEE', marginBottom: hp('2.5%') }} />
 
                                     {/* Source */}
                                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: wp('3%') }}>
-                                        <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: '#161616', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Mail size={hp('2%')} color="#555" />
+                                        <View style={{ width: wp('9%'), height: wp('9%'), borderRadius: 12, backgroundColor: isDark ? '#161616' : '#F5F5F7', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Mail size={hp('2%')} color={isDark ? "#555" : "#AAA"} />
                                         </View>
                                         <View style={{ flex: 1 }}>
-                                            <Text style={{ color: '#555', fontSize: hp('1.2%'), marginBottom: 2 }}>FROM</Text>
-                                            <Text style={{ color: '#888', fontSize: hp('1.6%') }}>{selectedEvent.sourceFrom || '—'}</Text>
-                                            <Text style={{ color: '#444', fontSize: hp('1.4%'), marginTop: 4 }} numberOfLines={3}>
+                                            <Text style={{ color: isDark ? '#555' : '#AAA', fontSize: hp('1.2%'), marginBottom: 2 }}>FROM</Text>
+                                            <Text style={{ color: isDark ? '#888' : '#555', fontSize: hp('1.6%') }}>{selectedEvent.sourceFrom || '—'}</Text>
+                                            <Text style={{ color: isDark ? '#444' : '#888', fontSize: hp('1.4%'), marginTop: 4 }} numberOfLines={3}>
                                                 {selectedEvent.sourceSubject}
                                             </Text>
                                         </View>

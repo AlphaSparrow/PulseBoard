@@ -11,6 +11,7 @@ export interface IProcessedEmail extends Document {
   eventTitle?: string;
   eventDescription?: string;
   eventDate?: Date;
+  eventEndDate?: Date;
   eventTimeDisplay?: string;
   eventLocation?: string;
   eventBadge?: 'LIVE' | 'UPCOMING';
@@ -27,6 +28,7 @@ const ProcessedEmailSchema: Schema = new Schema(
     eventTitle: String,
     eventDescription: String,
     eventDate: Date,
+    eventEndDate: Date,
     eventTimeDisplay: String,
     eventLocation: String,
     eventBadge: { type: String, enum: ['LIVE', 'UPCOMING'] },

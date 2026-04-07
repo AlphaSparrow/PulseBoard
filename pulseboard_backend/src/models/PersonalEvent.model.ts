@@ -10,6 +10,7 @@ export interface IPersonalEvent extends Document {
   icon: string;
   badge: 'LIVE' | 'UPCOMING';
   date: Date;
+  endDate?: Date;
   timeDisplay: string;
   location: string;
   color?: string;
@@ -28,6 +29,7 @@ const PersonalEventSchema: Schema = new Schema(
     icon: { type: String, default: '📅' },
     badge: { type: String, enum: ['LIVE', 'UPCOMING'], default: 'UPCOMING' },
     date: { type: Date, required: true },
+    endDate: { type: Date, index: true },
     timeDisplay: { type: String, required: true },
     location: { type: String, required: true },
     color: { type: String, default: '#CCF900' },
@@ -41,5 +43,8 @@ const PersonalEventSchema: Schema = new Schema(
 
 // Guarantees each Gmail message is processed exactly once per user
 PersonalEventSchema.index({ userId: 1, gmailMessageId: 1 }, { unique: true });
+
+// Optimized index for reminder scheduler performance
+PersonalEventSchema.index({ date: 1, reminderSent: 1 });
 
 export default mongoose.model<IPersonalEvent>('PersonalEvent', PersonalEventSchema);

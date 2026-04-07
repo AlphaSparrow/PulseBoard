@@ -6,6 +6,7 @@ import ProcessedEmail from '../models/ProcessedEmail.model';
 import { parseEventFromEmail } from './emailParser.service';
 import { getGoogleClient } from '../utils/googleClient';
 import { sendPushNotification } from './notification.service';
+import { extractLHCRoom, isLHCRoomAvailable } from './lhc.service';
 
 let isRunning = false;
 
@@ -122,6 +123,7 @@ async function checkUserEmails(user: any) {
                         title: existing.eventTitle!,
                         description: existing.eventDescription,
                         date: existing.eventDate!,
+                        endDate: existing.eventEndDate,
                         timeDisplay: existing.eventTimeDisplay!,
                         location: existing.eventLocation!,
                         badge: existing.eventBadge!,
@@ -177,6 +179,7 @@ async function checkUserEmails(user: any) {
                 eventTitle: eventData.title,
                 eventDescription: eventData.description,
                 eventDate: eventData.date,
+                eventEndDate: eventData.endDate,
                 eventTimeDisplay: eventData.timeDisplay,
                 eventLocation: eventData.location,
                 eventBadge: eventData.badge,
@@ -189,30 +192,43 @@ async function checkUserEmails(user: any) {
             // Check if this user is a club account — if so, publish to the global feed
             const linkedClub = await Club.findOne({ email: user.email.toLowerCase() });
             if (linkedClub) {
-                await Event.create({
-                    clubId: linkedClub.clubId,
-                    title: eventData.title,
-                    description: eventData.description,
-                    date: eventData.date,
-                    timeDisplay: eventData.timeDisplay,
-                    location: eventData.location,
-                    badge: eventData.badge,
-                    icon: eventData.icon,
-                    color: eventData.color,
-                });
-                console.log(`[GmailWatcher] Published club event: "${eventData.title}" for ${linkedClub.name}`);
+                // --- LHC Overlap Prevention for Clubs ---
+                const room = extractLHCRoom(eventData.location);
+                let canPublish = true;
+                if (room) {
+                    const { available } = await isLHCRoomAvailable(room, eventData.date, eventData.endDate!);
+                    if (!available) canPublish = false;
+                }
 
-                // Notify all users who follow this club
-                const followers = await User.find({
-                    following: linkedClub.clubId,
-                    expoPushToken: { $exists: true, $ne: null },
-                });
-                for (const follower of followers) {
-                    sendPushNotification(
-                        follower.expoPushToken!,
-                        `${eventData.icon} ${linkedClub.name}`,
-                        eventData.title,
-                    ).catch(() => {});
+                if (canPublish) {
+                    await Event.create({
+                        clubId: linkedClub.clubId,
+                        title: eventData.title,
+                        description: eventData.description,
+                        date: eventData.date,
+                        endDate: eventData.endDate,
+                        timeDisplay: eventData.timeDisplay,
+                        location: eventData.location,
+                        badge: eventData.badge,
+                        icon: eventData.icon,
+                        color: eventData.color,
+                    });
+                    console.log(`[GmailWatcher] Published club event: "${eventData.title}" for ${linkedClub.name}`);
+    
+                    // Notify all users who follow this club
+                    const followers = await User.find({
+                        following: linkedClub.clubId,
+                        expoPushToken: { $exists: true, $ne: null },
+                    });
+                    for (const follower of followers) {
+                        sendPushNotification(
+                            follower.expoPushToken!,
+                            `${eventData.icon} ${linkedClub.name}`,
+                            eventData.title,
+                        ).catch(() => {});
+                    }
+                } else {
+                    console.log(`[GmailWatcher] 🚫 CLASH! Skipping club event "${eventData.title}" (Room ${room} already booked)`);
                 }
             } else {
                 // Regular user — save to personal Smart Inbox
@@ -222,6 +238,7 @@ async function checkUserEmails(user: any) {
                     title: eventData.title,
                     description: eventData.description,
                     date: eventData.date,
+                    endDate: eventData.endDate,
                     timeDisplay: eventData.timeDisplay,
                     location: eventData.location,
                     badge: eventData.badge,

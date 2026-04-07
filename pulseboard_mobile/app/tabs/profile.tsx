@@ -7,10 +7,13 @@ import UserAvatar from 'react-native-user-avatar';
 import { getUserProfile } from '../../src/api/user.api'; 
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../../src/context/ThemeContext';
 
 // Theme Constants
-const THEME_BG = '#050505';
-const THEME_CARD = '#121212';
+const THEME_BG_DARK = '#050505';
+const THEME_BG_LIGHT = '#F5F5F7';
+const THEME_CARD_DARK = '#121212';
+const THEME_CARD_LIGHT = '#FFFFFF';
 const THEME_ACCENT = '#CCF900';
 const THEME_TEXT_SEC = '#737373';
 
@@ -22,8 +25,17 @@ interface UserData {
 }
 
 export default function ProfileScreen() {
+  const { isDark } = useTheme();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const colors = {
+    bg: isDark ? THEME_BG_DARK : THEME_BG_LIGHT,
+    card: isDark ? THEME_CARD_DARK : THEME_CARD_LIGHT,
+    text: isDark ? 'white' : '#000000',
+    border: isDark ? '#262626' : '#E5E5E5',
+    button: isDark ? '#1A1A1A' : '#F0F0F0',
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -51,25 +63,25 @@ export default function ProfileScreen() {
 
   const MenuItem = ({ icon: Icon, title, onPress, isDestructive = false }: any) => (
     <TouchableOpacity 
-      style={styles.menuItem}
+      style={[styles.menuItem, { backgroundColor: colors.card, borderColor: colors.border }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.menuItemLeft}>
         <View style={[
           styles.iconContainer, 
-          { backgroundColor: isDestructive ? 'rgba(239, 68, 68, 0.1)' : '#1A1A1A' }
+          { backgroundColor: isDestructive ? 'rgba(239, 68, 68, 0.1)' : (isDark ? '#1A1A1A' : '#F5F5F7') }
         ]}>
            <Icon color={isDestructive ? '#ef4444' : THEME_ACCENT} size={16} strokeWidth={2.5} />
         </View>
         <Text style={[
           styles.menuItemText, 
-          { color: isDestructive ? '#ef4444' : 'white' }
+          { color: isDestructive ? '#ef4444' : colors.text }
         ]}>
           {title}
         </Text>
       </View>
-      {!isDestructive && <ChevronRight color="#333" size={16} />}
+      {!isDestructive && <ChevronRight color={isDark ? "#333" : "#CCC"} size={16} />}
     </TouchableOpacity>
   );
 
@@ -80,22 +92,27 @@ export default function ProfileScreen() {
 
   if (loading) {
       return (
-        <View style={styles.loadingContainer}>
+        <View style={[styles.loadingContainer, { backgroundColor: colors.bg }]}>
           <ActivityIndicator size="small" color={THEME_ACCENT} />
         </View>
       );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* This hides the top status bar (battery/wifi icons) */}
       <StatusBar hidden={true} /> 
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       
       {/* Compact Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>PROFILE</Text>
-        <TouchableOpacity style={styles.settingsButton} activeOpacity={0.7}>
-          <Settings color="#fff" size={18} />
+        <Text style={[styles.headerTitle, { color: colors.text }]}>PROFILE</Text>
+        <TouchableOpacity 
+          style={[styles.settingsButton, { backgroundColor: colors.button, borderColor: colors.border }]} 
+          onPress={() => router.push('/settings')}
+          activeOpacity={0.7}
+        >
+          <Settings color={colors.text} size={18} />
         </TouchableOpacity>
       </View>
 
@@ -106,7 +123,7 @@ export default function ProfileScreen() {
       >
         
         {/* Compact Profile Card */}
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.ambientGlow} />
 
             {/* Smaller Avatar */}
@@ -116,30 +133,30 @@ export default function ProfileScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.avatarGradientBorder}
             >
-              <View style={styles.avatarInnerContainer}>
+              <View style={[styles.avatarInnerContainer, { backgroundColor: colors.card }]}>
                 <UserAvatar 
                   size={hp('8%')} 
                   name={displayName} 
                   src={displayAvatar} 
-                  bgColor="#050505"
+                  bgColor={colors.bg}
                 />
               </View>
             </LinearGradient>
 
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{displayName}</Text>
+              <Text style={[styles.userName, { color: colors.text }]}>{displayName}</Text>
               <Text style={styles.userEmail}>{displayEmail}</Text>
             </View>
 
             {/* Small Action Buttons */}
             <View style={styles.miniActionRow}>
-                <TouchableOpacity style={styles.miniBtn}>
-                    <Edit2 size={12} color="white" />
-                    <Text style={styles.miniBtnText}>Edit</Text>
+                <TouchableOpacity style={[styles.miniBtn, { backgroundColor: colors.button, borderColor: colors.border }]}>
+                    <Edit2 size={12} color={colors.text} />
+                    <Text style={[styles.miniBtnText, { color: colors.text }]}>Edit</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.miniBtn}>
-                    <Share2 size={12} color="white" />
-                    <Text style={styles.miniBtnText}>Share</Text>
+                <TouchableOpacity style={[styles.miniBtn, { backgroundColor: colors.button, borderColor: colors.border }]}>
+                    <Share2 size={12} color={colors.text} />
+                    <Text style={[styles.miniBtnText, { color: colors.text }]}>Share</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -164,11 +181,9 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME_BG,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: THEME_BG,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -202,7 +217,6 @@ const styles = StyleSheet.create({
   
   // Compact Profile Card
   profileCard: {
-    backgroundColor: THEME_CARD,
     borderWidth: 1,
     borderColor: '#262626',
     borderRadius: 24,
@@ -235,7 +249,6 @@ const styles = StyleSheet.create({
     width: hp('8.6%'),
     height: hp('8.6%'),
     borderRadius: 999,
-    backgroundColor: THEME_CARD,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -297,7 +310,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: THEME_CARD,
     borderWidth: 1,
     borderColor: '#1A1A1A',
     borderRadius: 16,
